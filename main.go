@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/ihcsim/pulumi-azure/v2/inputs"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/core"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/network"
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
@@ -11,82 +12,6 @@ import (
 const (
 	owner  = "isim-dev"
 	region = pulumi.String("WestUS")
-)
-
-var (
-	vnetMeta = struct {
-		cidr pulumi.StringArray
-	}{
-		cidr: pulumi.StringArray{pulumi.String("10.0.0.0/16")},
-	}
-
-	subnetMeta = []struct {
-		name          pulumi.String
-		addressPrefix pulumi.String
-		securityGroup pulumi.String
-	}{
-		{name: pulumi.String("subnet-00"), addressPrefix: pulumi.String("10.0.10.0/24")},
-		{name: pulumi.String("subnet-01"), addressPrefix: pulumi.String("10.0.20.0/24")},
-		{name: pulumi.String("subnet-02"), addressPrefix: pulumi.String("10.0.30.0/24")},
-	}
-
-	appSecGroupMeta = []struct {
-		name string
-	}{
-		{name: "web-servers"},
-		{name: "admin-servers"},
-	}
-
-	networkSecGroupMeta = []struct {
-		name   string
-		owners []string
-	}{
-		{
-			name:   "default",
-			owners: []string{string(subnetMeta[0].name), string(subnetMeta[1].name), string(subnetMeta[2].name)},
-		},
-	}
-
-	networkRules = []struct {
-		access                       pulumi.String
-		description                  pulumi.String
-		destinationPortRanges        pulumi.StringArray
-		destinationAppSecurityGroups pulumi.StringArray
-		direction                    pulumi.String
-		name                         pulumi.String
-		owners                       pulumi.StringArray // network security groups that own this rule
-		priority                     pulumi.Int
-		protocol                     pulumi.String
-		sourceAddressPrefix          pulumi.String
-		sourcePortRange              pulumi.String
-	}{
-		{
-			access:                       pulumi.String("Allow"),
-			description:                  pulumi.String("allow HTTP and HTTPS"),
-			destinationPortRanges:        pulumi.StringArray{pulumi.String("80"), pulumi.String("443")},
-			destinationAppSecurityGroups: pulumi.StringArray{pulumi.String(appSecGroupMeta[0].name)},
-			direction:                    "Inbound",
-			name:                         pulumi.String("allow-web-all"),
-			owners:                       pulumi.StringArray{pulumi.String(networkSecGroupMeta[0].name)},
-			priority:                     100,
-			protocol:                     pulumi.String("Tcp"),
-			sourceAddressPrefix:          "AzureLoadBalancer",
-			sourcePortRange:              "*",
-		},
-		{
-			access:                       pulumi.String("Allow"),
-			description:                  pulumi.String("allow SSH"),
-			destinationPortRanges:        pulumi.StringArray{pulumi.String("22")},
-			destinationAppSecurityGroups: pulumi.StringArray{pulumi.String(appSecGroupMeta[1].name)},
-			direction:                    "Inbound",
-			name:                         pulumi.String("allow-ssh-all"),
-			owners:                       pulumi.StringArray{pulumi.String(networkSecGroupMeta[0].name)},
-			priority:                     101,
-			protocol:                     pulumi.String("Tcp"),
-			sourceAddressPrefix:          "*",
-			sourcePortRange:              "*",
-		},
-	}
 )
 
 func main() {
@@ -112,11 +37,11 @@ func main() {
 		// the `appSecGroups` map will be used later to bind the application
 		// security groups to the network security rules.
 		appSecGroups := map[pulumi.String]*network.ApplicationSecurityGroup{}
-		for _, groupMeta := range appSecGroupMeta {
-			sg, err := network.NewApplicationSecurityGroup(ctx, groupMeta.name,
+		for _, secgroup := range inputs.AppSecGroups {
+			sg, err := network.NewApplicationSecurityGroup(ctx, secgroup.Name,
 				&network.ApplicationSecurityGroupArgs{
 					Location:          resourceGroup.Location,
-					Name:              pulumi.String(groupMeta.name),
+					Name:              pulumi.String(secgroup.Name),
 					ResourceGroupName: resourceGroup.Name,
 					Tags:              commonTags,
 				})
@@ -124,22 +49,22 @@ func main() {
 				return err
 			}
 
-			appSecGroups[pulumi.String(groupMeta.name)] = sg
+			appSecGroups[pulumi.String(secgroup.Name)] = sg
 		}
 
 		// create network security rules.
 		// every rule will be stored as value in the `networkSecRules` map keyed
 		// off the rule owner's name. The rule owner is a network security group.
 		networkSecRules := map[pulumi.String]network.NetworkSecurityGroupSecurityRuleArray{}
-		for _, rule := range networkRules {
+		for _, rule := range inputs.NetworkRules {
 			// bind the application security groups to the network rules using the
 			// `appSecGroups` map created above
 			appSecGroupIDs := pulumi.StringArray{}
-			for _, appID := range rule.destinationAppSecurityGroups {
+			for _, appID := range rule.DestinationAppSecurityGroups {
 				appSecGroupIDs = append(appSecGroupIDs, appSecGroups[appID.(pulumi.String)].ID())
 			}
 
-			for _, secgroup := range rule.owners {
+			for _, secgroup := range rule.Owners {
 				rules, exists := networkSecRules[secgroup.(pulumi.String)]
 				if !exists {
 					networkSecRules[secgroup.(pulumi.String)] = network.NetworkSecurityGroupSecurityRuleArray{}
@@ -147,53 +72,53 @@ func main() {
 
 				networkSecRules[secgroup.(pulumi.String)] = append(rules,
 					network.NetworkSecurityGroupSecurityRuleArgs{
-						Access:                                 rule.access,
-						Description:                            rule.description,
-						DestinationPortRanges:                  rule.destinationPortRanges,
+						Access:                                 rule.Access,
+						Description:                            rule.Description,
+						DestinationPortRanges:                  rule.DestinationPortRanges,
 						DestinationApplicationSecurityGroupIds: appSecGroupIDs,
-						Direction:                              rule.direction,
-						Name:                                   rule.name,
-						Priority:                               rule.priority,
-						Protocol:                               rule.protocol,
-						SourceAddressPrefix:                    rule.sourceAddressPrefix,
-						SourcePortRange:                        rule.sourcePortRange,
+						Direction:                              rule.Direction,
+						Name:                                   rule.Name,
+						Priority:                               rule.Priority,
+						Protocol:                               rule.Protocol,
+						SourceAddressPrefix:                    rule.SourceAddressPrefix,
+						SourcePortRange:                        rule.SourcePortRange,
 					})
 			}
 		}
 
 		// create the network security groups
 		networkSecGroups := map[pulumi.String]*network.NetworkSecurityGroup{}
-		for _, meta := range networkSecGroupMeta {
-			secGroup, err := network.NewNetworkSecurityGroup(ctx, meta.name,
+		for _, secgroup := range inputs.NetworkSecGroups {
+			sg, err := network.NewNetworkSecurityGroup(ctx, secgroup.Name,
 				&network.NetworkSecurityGroupArgs{
 					Location:          resourceGroup.Location,
 					ResourceGroupName: resourceGroup.Name,
-					SecurityRules:     networkSecRules[pulumi.String(meta.name)],
+					SecurityRules:     networkSecRules[pulumi.String(secgroup.Name)],
 					Tags:              commonTags,
 				})
 			if err != nil {
 				return err
 			}
 
-			for _, owner := range meta.owners {
-				networkSecGroups[pulumi.String(owner)] = secGroup
+			for _, owner := range secgroup.Owners {
+				networkSecGroups[pulumi.String(owner)] = sg
 			}
 		}
 
 		// create the virtual subnets
 		subnets := network.VirtualNetworkSubnetArray{}
-		for _, meta := range subnetMeta {
+		for _, meta := range inputs.Subnets {
 			subnets = append(subnets, network.VirtualNetworkSubnetArgs{
-				AddressPrefix: meta.addressPrefix,
-				Name:          meta.name,
-				SecurityGroup: networkSecGroups[meta.name].ID(),
+				AddressPrefix: meta.AddressPrefix,
+				Name:          meta.Name,
+				SecurityGroup: networkSecGroups[meta.Name].ID(),
 			})
 		}
 
 		// create the virtual network
 		vnet, err := network.NewVirtualNetwork(ctx, owner,
 			&network.VirtualNetworkArgs{
-				AddressSpaces:     vnetMeta.cidr,
+				AddressSpaces:     inputs.VNets.CIDR,
 				Location:          resourceGroup.Location,
 				ResourceGroupName: resourceGroup.Name,
 				Tags:              commonTags,
