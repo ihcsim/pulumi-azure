@@ -38,9 +38,13 @@ var (
 	}
 
 	networkSecGroupMeta = []struct {
-		name string
+		name   string
+		owners []string
 	}{
-		{name: "default"},
+		{
+			name:   "default",
+			owners: []string{string(subnetMeta[0].name), string(subnetMeta[1].name), string(subnetMeta[2].name)},
+		},
 	}
 
 	networkRules = []struct {
@@ -50,7 +54,7 @@ var (
 		destinationAppSecurityGroups pulumi.StringArray
 		direction                    pulumi.String
 		name                         pulumi.String
-		networkSecGroups             pulumi.StringArray
+		owners                       pulumi.StringArray // network security groups that own this rule
 		priority                     pulumi.Int
 		protocol                     pulumi.String
 		sourceAddressPrefix          pulumi.String
@@ -63,7 +67,7 @@ var (
 			destinationAppSecurityGroups: pulumi.StringArray{pulumi.String(appSecGroupMeta[0].name)},
 			direction:                    "Inbound",
 			name:                         pulumi.String("allow-web-all"),
-			networkSecGroups:             pulumi.StringArray{pulumi.String(networkSecGroupMeta[0].name)},
+			owners:                       pulumi.StringArray{pulumi.String(networkSecGroupMeta[0].name)},
 			priority:                     100,
 			protocol:                     pulumi.String("Tcp"),
 			sourceAddressPrefix:          "AzureLoadBalancer",
@@ -76,7 +80,7 @@ var (
 			destinationAppSecurityGroups: pulumi.StringArray{pulumi.String(appSecGroupMeta[1].name)},
 			direction:                    "Inbound",
 			name:                         pulumi.String("allow-ssh-all"),
-			networkSecGroups:             pulumi.StringArray{pulumi.String(networkSecGroupMeta[0].name)},
+			owners:                       pulumi.StringArray{pulumi.String(networkSecGroupMeta[0].name)},
 			priority:                     101,
 			protocol:                     pulumi.String("Tcp"),
 			sourceAddressPrefix:          "*",
@@ -92,6 +96,7 @@ func main() {
 			"stack":   pulumi.String(ctx.Stack()),
 		}
 
+		// create the resource group
 		resourceGroup, err := core.NewResourceGroup(ctx, owner,
 			&core.ResourceGroupArgs{
 				Location: region,
@@ -101,7 +106,11 @@ func main() {
 			return err
 		}
 
-		// a map of appSecgroup name => appSecGroup instance
+		// create application security groups.
+		// each security group is stored as a value in the `appSecGroups` map keyed
+		// off the security group's name.
+		// the `appSecGroups` map will be used later to bind the application
+		// security groups to the network security rules.
 		appSecGroups := map[pulumi.String]*network.ApplicationSecurityGroup{}
 		for _, groupMeta := range appSecGroupMeta {
 			sg, err := network.NewApplicationSecurityGroup(ctx, groupMeta.name,
@@ -118,54 +127,70 @@ func main() {
 			appSecGroups[pulumi.String(groupMeta.name)] = sg
 		}
 
-		networkSecRules := map[pulumi.String]network.NetworkSecurityGroupSecurityRuleArgs{}
+		// create network security rules.
+		// every rule will be stored as value in the `networkSecRules` map keyed
+		// off the rule owner's name. The rule owner is a network security group.
+		networkSecRules := map[pulumi.String]network.NetworkSecurityGroupSecurityRuleArray{}
 		for _, rule := range networkRules {
-			// bind the application security group to the network rules
-			// using the `appSecGroups` map created above
+			// bind the application security groups to the network rules using the
+			// `appSecGroups` map created above
 			appSecGroupIDs := pulumi.StringArray{}
 			for _, appID := range rule.destinationAppSecurityGroups {
 				appSecGroupIDs = append(appSecGroupIDs, appSecGroups[appID.(pulumi.String)].ID())
 			}
 
-			for _, secgroup := range rule.networkSecGroups {
-				networkSecRules[secgroup.(pulumi.String)] = network.NetworkSecurityGroupSecurityRuleArgs{
-					Access:                                 rule.access,
-					Description:                            rule.description,
-					DestinationPortRanges:                  rule.destinationPortRanges,
-					DestinationApplicationSecurityGroupIds: appSecGroupIDs,
-					Direction:                              rule.direction,
-					Name:                                   rule.name,
-					Priority:                               rule.priority,
-					Protocol:                               rule.protocol,
-					SourceAddressPrefix:                    rule.sourceAddressPrefix,
-					SourcePortRange:                        rule.sourcePortRange,
+			for _, secgroup := range rule.owners {
+				rules, exists := networkSecRules[secgroup.(pulumi.String)]
+				if !exists {
+					networkSecRules[secgroup.(pulumi.String)] = network.NetworkSecurityGroupSecurityRuleArray{}
 				}
+
+				networkSecRules[secgroup.(pulumi.String)] = append(rules,
+					network.NetworkSecurityGroupSecurityRuleArgs{
+						Access:                                 rule.access,
+						Description:                            rule.description,
+						DestinationPortRanges:                  rule.destinationPortRanges,
+						DestinationApplicationSecurityGroupIds: appSecGroupIDs,
+						Direction:                              rule.direction,
+						Name:                                   rule.name,
+						Priority:                               rule.priority,
+						Protocol:                               rule.protocol,
+						SourceAddressPrefix:                    rule.sourceAddressPrefix,
+						SourcePortRange:                        rule.sourcePortRange,
+					})
 			}
 		}
 
-		networkSecGroups := []*network.NetworkSecurityGroup{}
+		// create the network security groups
+		networkSecGroups := map[pulumi.String]*network.NetworkSecurityGroup{}
 		for _, meta := range networkSecGroupMeta {
 			secGroup, err := network.NewNetworkSecurityGroup(ctx, meta.name,
 				&network.NetworkSecurityGroupArgs{
 					Location:          resourceGroup.Location,
 					ResourceGroupName: resourceGroup.Name,
-					SecurityRules:     networkSecRules[meta.name],
+					SecurityRules:     networkSecRules[pulumi.String(meta.name)],
 					Tags:              commonTags,
 				})
 			if err != nil {
 				return err
 			}
-			networkSecGroups = append(networkSecGroups, secGroup)
+
+			for _, owner := range meta.owners {
+				networkSecGroups[pulumi.String(owner)] = secGroup
+			}
 		}
 
+		// create the virtual subnets
 		subnets := network.VirtualNetworkSubnetArray{}
 		for _, meta := range subnetMeta {
 			subnets = append(subnets, network.VirtualNetworkSubnetArgs{
 				AddressPrefix: meta.addressPrefix,
 				Name:          meta.name,
-				SecurityGroup: networkSecGroups[0].ID(),
+				SecurityGroup: networkSecGroups[meta.name].ID(),
 			})
 		}
+
+		// create the virtual network
 		vnet, err := network.NewVirtualNetwork(ctx, owner,
 			&network.VirtualNetworkArgs{
 				AddressSpaces:     vnetMeta.cidr,
