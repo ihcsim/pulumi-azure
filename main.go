@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ihcsim/pulumi-azure/v2/inputs"
+	"github.com/ihcsim/pulumi-azure/v2/pkg/inputs"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/core"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/network"
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
