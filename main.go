@@ -1,17 +1,10 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/ihcsim/pulumi-azure/v2/inputs"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/core"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/network"
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
-)
-
-const (
-	owner  = "isim-dev"
-	region = pulumi.String("WestUS")
 )
 
 func main() {
@@ -22,23 +15,19 @@ func main() {
 		}
 
 		// create the resource group
-		resourceGroup, err := core.NewResourceGroup(ctx, owner,
+		resourceGroup, err := core.NewResourceGroup(ctx, string(inputs.ResourceGroup.Name),
 			&core.ResourceGroupArgs{
-				Location: region,
+				Location: inputs.ResourceGroup.Location,
 				Tags:     commonTags,
 			})
 		if err != nil {
 			return err
 		}
 
-		// create application security groups.
-		// each security group is stored as a value in the `appSecGroups` map keyed
-		// off the security group's name.
-		// the `appSecGroups` map will be used later to bind the application
-		// security groups to the network security rules.
+		// create application security groups
 		appSecGroups := map[pulumi.String]*network.ApplicationSecurityGroup{}
 		for _, secgroup := range inputs.AppSecGroups {
-			sg, err := network.NewApplicationSecurityGroup(ctx, secgroup.Name,
+			a, err := network.NewApplicationSecurityGroup(ctx, string(secgroup.Name),
 				&network.ApplicationSecurityGroupArgs{
 					Location:          resourceGroup.Location,
 					Name:              pulumi.String(secgroup.Name),
@@ -48,87 +37,81 @@ func main() {
 			if err != nil {
 				return err
 			}
-
-			appSecGroups[pulumi.String(secgroup.Name)] = sg
+			appSecGroups[secgroup.Name] = a
 		}
 
-		// create network security rules.
-		// every rule will be stored as value in the `networkSecRules` map keyed
-		// off the rule owner's name. The rule owner is a network security group.
-		networkSecRules := map[pulumi.String]network.NetworkSecurityGroupSecurityRuleArray{}
+		// create network security rules
+		networkRules := map[pulumi.String]network.NetworkSecurityGroupSecurityRuleArgs{}
 		for _, rule := range inputs.NetworkRules {
-			// bind the application security groups to the network rules using the
-			// `appSecGroups` map created above
-			appSecGroupIDs := pulumi.StringArray{}
-			for _, appID := range rule.DestinationAppSecurityGroups {
-				appSecGroupIDs = append(appSecGroupIDs, appSecGroups[appID.(pulumi.String)].ID())
+			destinationAppSecGroupIds := pulumi.StringArray{}
+			for _, secgroup := range rule.DestinationAppSecurityGroups {
+				destinationAppSecGroupIds = append(destinationAppSecGroupIds, appSecGroups[secgroup.(pulumi.String)].ID())
 			}
 
-			for _, secgroup := range rule.Owners {
-				rules, exists := networkSecRules[secgroup.(pulumi.String)]
-				if !exists {
-					networkSecRules[secgroup.(pulumi.String)] = network.NetworkSecurityGroupSecurityRuleArray{}
-				}
-
-				networkSecRules[secgroup.(pulumi.String)] = append(rules,
-					network.NetworkSecurityGroupSecurityRuleArgs{
-						Access:                                 rule.Access,
-						Description:                            rule.Description,
-						DestinationPortRanges:                  rule.DestinationPortRanges,
-						DestinationApplicationSecurityGroupIds: appSecGroupIDs,
-						Direction:                              rule.Direction,
-						Name:                                   rule.Name,
-						Priority:                               rule.Priority,
-						Protocol:                               rule.Protocol,
-						SourceAddressPrefix:                    rule.SourceAddressPrefix,
-						SourcePortRange:                        rule.SourcePortRange,
-					})
+			networkRules[rule.Name] = network.NetworkSecurityGroupSecurityRuleArgs{
+				Access:                                 rule.Access,
+				Description:                            rule.Description,
+				DestinationPortRanges:                  rule.DestinationPortRanges,
+				DestinationApplicationSecurityGroupIds: destinationAppSecGroupIds,
+				Direction:                              rule.Direction,
+				Name:                                   rule.Name,
+				Priority:                               rule.Priority,
+				Protocol:                               rule.Protocol,
+				SourceAddressPrefix:                    rule.SourceAddressPrefix,
+				SourcePortRange:                        rule.SourcePortRange,
 			}
 		}
 
 		// create the network security groups
 		networkSecGroups := map[pulumi.String]*network.NetworkSecurityGroup{}
 		for _, secgroup := range inputs.NetworkSecGroups {
-			sg, err := network.NewNetworkSecurityGroup(ctx, secgroup.Name,
+			securityRules := network.NetworkSecurityGroupSecurityRuleArray{}
+			for _, rule := range secgroup.SecurityRules {
+				securityRules = append(securityRules, networkRules[rule])
+			}
+
+			sg, err := network.NewNetworkSecurityGroup(ctx, string(secgroup.Name),
 				&network.NetworkSecurityGroupArgs{
 					Location:          resourceGroup.Location,
 					ResourceGroupName: resourceGroup.Name,
-					SecurityRules:     networkSecRules[pulumi.String(secgroup.Name)],
+					SecurityRules:     securityRules,
 					Tags:              commonTags,
 				})
 			if err != nil {
 				return err
 			}
 
-			for _, owner := range secgroup.Owners {
-				networkSecGroups[pulumi.String(owner)] = sg
-			}
-		}
-
-		// create the virtual subnets
-		subnets := network.VirtualNetworkSubnetArray{}
-		for _, meta := range inputs.Subnets {
-			subnets = append(subnets, network.VirtualNetworkSubnetArgs{
-				AddressPrefix: meta.AddressPrefix,
-				Name:          meta.Name,
-				SecurityGroup: networkSecGroups[meta.Name].ID(),
-			})
+			networkSecGroups[secgroup.Name] = sg
 		}
 
 		// create the virtual network
-		vnet, err := network.NewVirtualNetwork(ctx, owner,
-			&network.VirtualNetworkArgs{
-				AddressSpaces:     inputs.VNets.CIDR,
-				Location:          resourceGroup.Location,
-				ResourceGroupName: resourceGroup.Name,
-				Tags:              commonTags,
-				Subnets:           subnets,
-			})
-		if err != nil {
-			return err
+		subnets := map[pulumi.String]network.VirtualNetworkSubnetArgs{}
+		for _, subnet := range inputs.Subnets {
+			subnets[subnet.Name] = network.VirtualNetworkSubnetArgs{
+				AddressPrefix: subnet.AddressPrefix,
+				Name:          subnet.Name,
+				SecurityGroup: networkSecGroups[subnet.SecurityGroup].ID(),
+			}
 		}
 
-		fmt.Println(vnet.Name)
+		for _, vnet := range inputs.VNets {
+			subnetsInput := network.VirtualNetworkSubnetArray{}
+			for _, subnet := range vnet.Subnets {
+				subnetsInput = append(subnetsInput, subnets[subnet])
+			}
+
+			if _, err := network.NewVirtualNetwork(ctx, string(vnet.Name),
+				&network.VirtualNetworkArgs{
+					AddressSpaces:     vnet.CIDR,
+					Location:          resourceGroup.Location,
+					ResourceGroupName: resourceGroup.Name,
+					Tags:              commonTags,
+					Subnets:           subnetsInput,
+				}); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 }
