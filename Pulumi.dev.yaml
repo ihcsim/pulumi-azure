@@ -1,7 +1,7 @@
 config:
   azure:clientId: 2c5123e2-e6db-44b9-ad93-c2fdb9152e18
   azure:clientSecret:
-    secure: AAABAKFuSeTzqKYd6ZvUlM3J7U++IhXnREbOxoRsVpB52PGgm5O4pVsvQSkFeIlQAVlAQ1fhSmvHwoi+Um3Z4XrSbyU=
+    secure: AAABAOAYNECpWx+Pyu9fqgbNJSROd+GFHV3Pz08dHtBQiIMkCjJaDIJttVwp8Qutz1e2K0Os+t6DW170oID1oYpR3Y8=
   azure:environment: public
   azure:subscriptionId: 0d6287e7-24d2-4072-9e49-598afe89b424
   azure:tenantId: 3b36ef38-3112-4f1e-925d-6aa81d69be57
