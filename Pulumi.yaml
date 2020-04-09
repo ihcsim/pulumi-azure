@@ -1,3 +1,4 @@
 name: pulumi-azure
 runtime: go
 description: A minimal Azure Go Pulumi program
+main: cmd/pulumi
