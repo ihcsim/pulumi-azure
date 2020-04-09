@@ -33,18 +33,18 @@ var (
 		SecurityGroup pulumi.String
 	}{
 		{
-			Name:          pulumi.String("subnet-00"),
-			AddressPrefix: pulumi.String("10.0.10.0/24"),
+			Name:          "subnet-00",
+			AddressPrefix: "10.0.10.0/24",
 			SecurityGroup: NetworkSecGroups[0].Name,
 		},
 		{
-			Name:          pulumi.String("subnet-01"),
-			AddressPrefix: pulumi.String("10.0.20.0/24"),
+			Name:          "subnet-01",
+			AddressPrefix: "10.0.20.0/24",
 			SecurityGroup: NetworkSecGroups[0].Name,
 		},
 		{
-			Name:          pulumi.String("subnet-02"),
-			AddressPrefix: pulumi.String("10.0.30.0/24"),
+			Name:          "subnet-02",
+			AddressPrefix: "10.0.30.0/24",
 			SecurityGroup: NetworkSecGroups[0].Name,
 		},
 	}
@@ -52,8 +52,8 @@ var (
 	AppSecGroups = []struct {
 		Name pulumi.String
 	}{
-		{Name: pulumi.String("web-servers")},
-		{Name: pulumi.String("admin-servers")},
+		{Name: "web-servers"},
+		{Name: "admin-servers"},
 	}
 
 	NetworkSecGroups = []struct {
@@ -82,8 +82,8 @@ var (
 		SourcePortRange              pulumi.String
 	}{
 		{
-			Access:      pulumi.String("Allow"),
-			Description: pulumi.String("allow HTTP and HTTPS"),
+			Access:      "Allow",
+			Description: "allow HTTP and HTTPS",
 			DestinationPortRanges: pulumi.StringArray{
 				pulumi.String("80"),
 				pulumi.String("443"),
@@ -92,15 +92,15 @@ var (
 				pulumi.String(AppSecGroups[0].Name),
 			},
 			Direction:           "Inbound",
-			Name:                pulumi.String("allow-web-all"),
+			Name:                "allow-web-all",
 			Priority:            100,
-			Protocol:            pulumi.String("Tcp"),
+			Protocol:            "Tcp",
 			SourceAddressPrefix: "AzureLoadBalancer",
 			SourcePortRange:     "*",
 		},
 		{
-			Access:      pulumi.String("Allow"),
-			Description: pulumi.String("allow SSH"),
+			Access:      "Allow",
+			Description: "allow SSH",
 			DestinationPortRanges: pulumi.StringArray{
 				pulumi.String("22"),
 			},
@@ -108,9 +108,9 @@ var (
 				pulumi.String(AppSecGroups[1].Name),
 			},
 			Direction:           "Inbound",
-			Name:                pulumi.String("allow-ssh-all"),
+			Name:                "allow-ssh-all",
 			Priority:            101,
-			Protocol:            pulumi.String("Tcp"),
+			Protocol:            "Tcp",
 			SourceAddressPrefix: "*",
 			SourcePortRange:     "*",
 		},
