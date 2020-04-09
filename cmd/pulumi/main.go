@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ihcsim/pulumi-azure/v2/pkg/inputs"
+	"github.com/ihcsim/pulumi-azure/v2/config"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/core"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/network"
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
@@ -15,9 +15,9 @@ func main() {
 		}
 
 		// create the resource group
-		resourceGroup, err := core.NewResourceGroup(ctx, string(inputs.ResourceGroup.Name),
+		resourceGroup, err := core.NewResourceGroup(ctx, string(config.ResourceGroup.Name),
 			&core.ResourceGroupArgs{
-				Location: inputs.ResourceGroup.Location,
+				Location: config.ResourceGroup.Location,
 				Tags:     commonTags,
 			})
 		if err != nil {
@@ -26,7 +26,7 @@ func main() {
 
 		// create application security groups
 		appSecGroups := map[pulumi.String]*network.ApplicationSecurityGroup{}
-		for _, secgroup := range inputs.AppSecGroups {
+		for _, secgroup := range config.AppSecGroups {
 			a, err := network.NewApplicationSecurityGroup(ctx, string(secgroup.Name),
 				&network.ApplicationSecurityGroupArgs{
 					Location:          resourceGroup.Location,
@@ -42,7 +42,7 @@ func main() {
 
 		// create network security rules
 		networkRules := map[pulumi.String]network.NetworkSecurityGroupSecurityRuleArgs{}
-		for _, rule := range inputs.NetworkRules {
+		for _, rule := range config.NetworkRules {
 			destinationAppSecGroupIds := pulumi.StringArray{}
 			for _, secgroup := range rule.DestinationAppSecurityGroups {
 				destinationAppSecGroupIds = append(destinationAppSecGroupIds, appSecGroups[secgroup.(pulumi.String)].ID())
@@ -64,7 +64,7 @@ func main() {
 
 		// create the network security groups
 		networkSecGroups := map[pulumi.String]*network.NetworkSecurityGroup{}
-		for _, secgroup := range inputs.NetworkSecGroups {
+		for _, secgroup := range config.NetworkSecGroups {
 			securityRules := network.NetworkSecurityGroupSecurityRuleArray{}
 			for _, rule := range secgroup.SecurityRules {
 				securityRules = append(securityRules, networkRules[rule])
@@ -86,7 +86,7 @@ func main() {
 
 		// create the virtual network
 		subnets := map[pulumi.String]network.VirtualNetworkSubnetArgs{}
-		for _, subnet := range inputs.Subnets {
+		for _, subnet := range config.Subnets {
 			subnets[subnet.Name] = network.VirtualNetworkSubnetArgs{
 				AddressPrefix: subnet.AddressPrefix,
 				Name:          subnet.Name,
@@ -94,7 +94,7 @@ func main() {
 			}
 		}
 
-		for _, vnet := range inputs.VNets {
+		for _, vnet := range config.VNets {
 			subnetsInput := network.VirtualNetworkSubnetArray{}
 			for _, subnet := range vnet.Subnets {
 				subnetsInput = append(subnetsInput, subnets[subnet])

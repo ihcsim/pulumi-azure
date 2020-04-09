@@ -1,4 +1,4 @@
-package inputs
+package config
 
 import "github.com/pulumi/pulumi/sdk/go/pulumi"
 
