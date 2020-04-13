@@ -2,50 +2,54 @@ package config
 
 import "github.com/pulumi/pulumi/sdk/go/pulumi"
 
+const projectName = "isim-dev"
+
 var (
 	ResourceGroup = struct {
 		Location pulumi.String
 		Name     pulumi.String
 	}{
 		Location: "WestUS",
-		Name:     "isim-dev",
+		Name:     projectName,
 	}
 
-	VNets = []struct {
+	VNets = map[pulumi.String]struct {
 		CIDR    pulumi.StringArray
 		Name    pulumi.String
 		Subnets []pulumi.String
 	}{
-		{
-			CIDR: pulumi.StringArray{pulumi.String("10.0.0.0/16")},
+		projectName: {
+			CIDR: pulumi.StringArray{
+				pulumi.String("10.0.0.0/16"),
+			},
 			Name: ResourceGroup.Name,
 			Subnets: []pulumi.String{
-				Subnets[0].Name,
-				Subnets[1].Name,
-				Subnets[2].Name,
+				"subnet-00",
+				"subnet-01",
+				"subnet-02",
 			},
 		},
 	}
 
-	Subnets = []struct {
+	Subnets = map[pulumi.String]struct {
 		Name          pulumi.String
 		AddressPrefix pulumi.String
 		SecurityGroup pulumi.String
 	}{
-		{
+		"subnet-00": {
 			Name:          "subnet-00",
 			AddressPrefix: "10.0.10.0/24",
-			SecurityGroup: NetworkSecGroups[0].Name,
+			SecurityGroup: "default",
 		},
-		{
+		"subnet-01": {
 			Name:          "subnet-01",
 			AddressPrefix: "10.0.20.0/24",
-			SecurityGroup: NetworkSecGroups[0].Name,
+			SecurityGroup: "default",
 		},
-		{
+		"subnet-02": {
 			Name:          "subnet-02",
 			AddressPrefix: "10.0.30.0/24",
-			SecurityGroup: NetworkSecGroups[0].Name,
+			SecurityGroup: "default",
 		},
 	}
 
@@ -63,8 +67,8 @@ var (
 		{
 			Name: "default",
 			SecurityRules: []pulumi.String{
-				NetworkRules[0].Name,
-				NetworkRules[1].Name,
+				"allow-web-all",
+				"allow-ssh-all",
 			},
 		},
 	}
@@ -89,7 +93,7 @@ var (
 				pulumi.String("443"),
 			},
 			DestinationAppSecurityGroups: pulumi.StringArray{
-				pulumi.String(AppSecGroups[0].Name),
+				pulumi.String("web-servers"),
 			},
 			Direction:           "Inbound",
 			Name:                "allow-web-all",
@@ -105,7 +109,7 @@ var (
 				pulumi.String("22"),
 			},
 			DestinationAppSecurityGroups: pulumi.StringArray{
-				pulumi.String(AppSecGroups[1].Name),
+				pulumi.String("admin-servers"),
 			},
 			Direction:           "Inbound",
 			Name:                "allow-ssh-all",
