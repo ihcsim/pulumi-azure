@@ -9,7 +9,28 @@ import (
 const NetworkInterfaceKindPrimary = "primary"
 
 var (
+	AvailabilitySets = []struct {
+		Managed                   pulumi.Bool
+		Name                      pulumi.String
+		PlatformFaultDomainCount  pulumi.Int
+		PlatformUpdateDomainCount pulumi.Int
+	}{
+		{
+			Managed:                   true,
+			Name:                      "web",
+			PlatformFaultDomainCount:  3,
+			PlatformUpdateDomainCount: 3,
+		},
+		{
+			Managed:                   true,
+			Name:                      "backend",
+			PlatformFaultDomainCount:  3,
+			PlatformUpdateDomainCount: 3,
+		},
+	}
+
 	VirtualMachines = []struct {
+		AvailabilitySet       pulumi.String
 		Name                  pulumi.String
 		NetworkInterface      pulumi.String
 		OSProfile             pulumi.String
@@ -21,6 +42,7 @@ var (
 		VMSize                pulumi.String
 	}{
 		{
+			AvailabilitySet:       "web",
 			Name:                  "web",
 			NetworkInterface:      NetworkInterfaceKindPrimary,
 			OSProfile:             "default",
@@ -32,7 +54,8 @@ var (
 			Subnet:                "subnet-00",
 		},
 		{
-			Name:                  "admin",
+			AvailabilitySet:       "backend",
+			Name:                  "backend",
 			NetworkInterface:      NetworkInterfaceKindPrimary,
 			OSProfile:             "default",
 			OSProfileLinux:        "default",

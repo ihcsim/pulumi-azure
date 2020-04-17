@@ -17,6 +17,24 @@ func Up(
 	virtualNetworks []*network.VirtualNetwork,
 	tags pulumi.StringMap) ([]*compute.VirtualMachine, error) {
 
+	availabilitySets := map[pulumi.String]*compute.AvailabilitySet{}
+	for _, asConfig := range config.AvailabilitySets {
+		availabilitySet, err := compute.NewAvailabilitySet(ctx, string(asConfig.Name), &compute.AvailabilitySetArgs{
+			Location:                  resourceGroup.Location,
+			Managed:                   asConfig.Managed,
+			Name:                      asConfig.Name,
+			PlatformFaultDomainCount:  asConfig.PlatformFaultDomainCount,
+			PlatformUpdateDomainCount: asConfig.PlatformUpdateDomainCount,
+			ResourceGroupName:         resourceGroup.Name,
+			Tags:                      tags,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		availabilitySets[asConfig.Name] = availabilitySet
+	}
+
 	vms := []*compute.VirtualMachine{}
 	for _, virtualNetwork := range virtualNetworks {
 		for _, vmConfig := range config.VirtualMachines {
@@ -95,7 +113,13 @@ func Up(
 				Version:   imageRefConfig.Version,
 			}
 
+			availabilitySet, exists := availabilitySets[vmConfig.AvailabilitySet]
+			if !exists {
+				return nil, pulumiazure.MissingConfigErr{vmConfig.AvailabilitySet, "availability set"}
+			}
+
 			vm, err := compute.NewVirtualMachine(ctx, string(vmConfig.Name), &compute.VirtualMachineArgs{
+				AvailabilitySetId:         availabilitySet.ID(),
 				Location:                  resourceGroup.Location,
 				Name:                      vmConfig.Name,
 				OsProfile:                 osProfile,
