@@ -2,6 +2,8 @@ package compute
 
 import (
 	"fmt"
+	"math"
+	"strings"
 
 	pulumiazure "github.com/ihcsim/pulumi-azure/v2"
 	"github.com/ihcsim/pulumi-azure/v2/config"
@@ -57,11 +59,6 @@ func Up(
 				return ""
 			})
 
-			netInf, err := createPrimaryNetworkInterface(ctx, vmConfig.Name, subnetID, resourceGroup, tags)
-			if err != nil {
-				return nil, err
-			}
-
 			osProfileConfig, exists := config.OSProfiles[vmConfig.OSProfile]
 			if !exists {
 				return nil, pulumiazure.MissingConfigErr{vmConfig.OSProfile, "osprofile"}
@@ -89,18 +86,6 @@ func Up(
 				},
 			}
 
-			osDiskConfig, exists := config.StorageOSDisks[vmConfig.StorageOSDisk]
-			if !exists {
-				return nil, pulumiazure.MissingConfigErr{vmConfig.StorageOSDisk, "osdisk"}
-			}
-
-			osDisk := compute.VirtualMachineStorageOsDiskArgs{
-				CreateOption: osDiskConfig.CreateOption,
-				DiskSizeGb:   osDiskConfig.DiskSizeGb,
-				Name:         vmConfig.Name,
-				OsType:       osDiskConfig.OSType,
-			}
-
 			imageRefConfig, exists := config.StorageImageReference[vmConfig.StorageImageReference]
 			if !exists {
 				return nil, pulumiazure.MissingConfigErr{vmConfig.StorageImageReference, "image-reference"}
@@ -118,25 +103,50 @@ func Up(
 				return nil, pulumiazure.MissingConfigErr{vmConfig.AvailabilitySet, "availability set"}
 			}
 
-			vm, err := compute.NewVirtualMachine(ctx, string(vmConfig.Name), &compute.VirtualMachineArgs{
-				AvailabilitySetId:         availabilitySet.ID(),
-				Location:                  resourceGroup.Location,
-				Name:                      vmConfig.Name,
-				OsProfile:                 osProfile,
-				OsProfileLinuxConfig:      osProfileLinux,
-				PrimaryNetworkInterfaceId: netInf.ID(),
-				NetworkInterfaceIds:       pulumi.StringArray{netInf.ID()},
-				StorageImageReference:     imageRef,
-				ResourceGroupName:         resourceGroup.Name,
-				StorageOsDisk:             osDisk,
-				Tags:                      tags,
-				VmSize:                    vmConfig.VMSize,
-			})
-			if err != nil {
-				return nil, err
-			}
+			var (
+				paddingLen         = int(math.Round(float64(vmConfig.Count)/10)) + 1
+				instanceNamePrefix = fmt.Sprintf("%s-%s", vmConfig.Name, strings.Repeat("0", paddingLen))
+			)
+			for i := 0; i < int(vmConfig.Count); i++ {
+				instanceName := pulumi.String(fmt.Sprintf("%s%d", instanceNamePrefix, i))
 
-			vms = append(vms, vm)
+				netInf, err := createPrimaryNetworkInterface(ctx, instanceName, subnetID, resourceGroup, tags)
+				if err != nil {
+					return nil, err
+				}
+
+				osDiskConfig, exists := config.StorageOSDisks[vmConfig.StorageOSDisk]
+				if !exists {
+					return nil, pulumiazure.MissingConfigErr{vmConfig.StorageOSDisk, "osdisk"}
+				}
+
+				osDisk := compute.VirtualMachineStorageOsDiskArgs{
+					CreateOption: osDiskConfig.CreateOption,
+					DiskSizeGb:   osDiskConfig.DiskSizeGb,
+					Name:         instanceName,
+					OsType:       osDiskConfig.OSType,
+				}
+
+				vm, err := compute.NewVirtualMachine(ctx, string(instanceName), &compute.VirtualMachineArgs{
+					AvailabilitySetId:         availabilitySet.ID(),
+					Location:                  resourceGroup.Location,
+					Name:                      instanceName,
+					OsProfile:                 osProfile,
+					OsProfileLinuxConfig:      osProfileLinux,
+					PrimaryNetworkInterfaceId: netInf.ID(),
+					NetworkInterfaceIds:       pulumi.StringArray{netInf.ID()},
+					StorageImageReference:     imageRef,
+					ResourceGroupName:         resourceGroup.Name,
+					StorageOsDisk:             osDisk,
+					Tags:                      tags,
+					VmSize:                    vmConfig.VMSize,
+				})
+				if err != nil {
+					return nil, err
+				}
+
+				vms = append(vms, vm)
+			}
 		}
 	}
 

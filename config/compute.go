@@ -31,6 +31,7 @@ var (
 
 	VirtualMachines = []struct {
 		AvailabilitySet       pulumi.String
+		Count                 pulumi.Int
 		Name                  pulumi.String
 		NetworkInterface      pulumi.String
 		OSProfile             pulumi.String
@@ -43,6 +44,7 @@ var (
 	}{
 		{
 			AvailabilitySet:       "web",
+			Count:                 3,
 			Name:                  "web",
 			NetworkInterface:      NetworkInterfaceKindPrimary,
 			OSProfile:             "default",
@@ -55,6 +57,7 @@ var (
 		},
 		{
 			AvailabilitySet:       "backend",
+			Count:                 3,
 			Name:                  "backend",
 			NetworkInterface:      NetworkInterfaceKindPrimary,
 			OSProfile:             "default",
