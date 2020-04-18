@@ -1,7 +1,10 @@
 config:
-  azure:clientId: 2c5123e2-e6db-44b9-ad93-c2fdb9152e18
+  azure:clientId:
+    secure: AAABADgPQXDskGrKw8ACBGdOg0DF1zNxIC/XaHJ6pdquiU2DKK3UPfp/2W47/49KWFtTlYglFokIzTBsZE/QNffiX8Y=
   azure:clientSecret:
-    secure: AAABAOAYNECpWx+Pyu9fqgbNJSROd+GFHV3Pz08dHtBQiIMkCjJaDIJttVwp8Qutz1e2K0Os+t6DW170oID1oYpR3Y8=
+    secure: AAABAJ7hiAVZq5vmSspzxy+HZsVxQmeZTVY+EzGWcIe0r4J2MUNA+b4mqg0HBzrNNBv846AGQi6hffCTphLH29pgr1Q=
   azure:environment: public
-  azure:subscriptionId: 0d6287e7-24d2-4072-9e49-598afe89b424
-  azure:tenantId: 3b36ef38-3112-4f1e-925d-6aa81d69be57
+  azure:subscriptionId:
+    secure: AAABAKvyMzLWYcqCqNqy7fD4Aq8PRYME+qtopvJWuxyUb5KFuvDN5K9cdfurPVUmZ7oGKcr7iMFH3BjGQJ0AxxMM0vA=
+  azure:tenantId:
+    secure: AAABAJWBc5FLPYcXvS/zEukD3InfdGc+8/t6HLBCES5/M7ttWiBcaeWFixjReMuliRwz9udhtzoD90AaYjqGbsN+VMc=
