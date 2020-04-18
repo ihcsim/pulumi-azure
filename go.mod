@@ -11,8 +11,8 @@ require (
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 // indirect
-	github.com/pulumi/pulumi-azure/sdk v0.0.0-20200326135512-7563f3e5f0db
-	github.com/pulumi/pulumi/sdk v0.0.0-20200327215558-fa3d50faa2ea
+	github.com/pulumi/pulumi-azure/sdk v0.0.0-20200330121822-37ff63d4418a
+	github.com/pulumi/pulumi/sdk v1.13.1
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc // indirect
 	github.com/spf13/cobra v1.0.0 // indirect
