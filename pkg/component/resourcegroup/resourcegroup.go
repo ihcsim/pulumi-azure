@@ -1,15 +1,25 @@
 package resourcegroup
 
 import (
-	"github.com/ihcsim/pulumi-azure/v2/config"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/core"
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
+	"github.com/pulumi/pulumi/sdk/go/pulumi/config"
 )
 
-func Up(ctx *pulumi.Context, tags pulumi.StringMap) (*core.ResourceGroup, error) {
-	return core.NewResourceGroup(ctx, string(config.ResourceGroup.Name),
+func Up(ctx *pulumi.Context, cfg *config.Config, tags pulumi.StringMap) (*core.ResourceGroup, error) {
+	var input ResourceGroupInput
+	if err := cfg.TryObject("resourceGroup", &input); err != nil {
+		return nil, err
+	}
+
+	return core.NewResourceGroup(ctx, string(input.Name),
 		&core.ResourceGroupArgs{
-			Location: config.ResourceGroup.Location,
+			Location: pulumi.String(input.Location),
 			Tags:     tags,
 		})
+}
+
+type ResourceGroupInput struct {
+	Location string
+	Name     string
 }

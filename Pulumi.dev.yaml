@@ -1,10 +1,129 @@
 config:
   azure:clientId:
-    secure: AAABADgPQXDskGrKw8ACBGdOg0DF1zNxIC/XaHJ6pdquiU2DKK3UPfp/2W47/49KWFtTlYglFokIzTBsZE/QNffiX8Y=
+    secure: AAABAMW/EhcdByRYxPVhcDD/hRDU5a2hBJraYb0twObRtidsydvfGCgJUh3ckWeGPWK/0+QlKR1Kcn+Tiwu/265I8GU=
   azure:clientSecret:
-    secure: AAABAJ7hiAVZq5vmSspzxy+HZsVxQmeZTVY+EzGWcIe0r4J2MUNA+b4mqg0HBzrNNBv846AGQi6hffCTphLH29pgr1Q=
+    secure: AAABAGImh0dptGUFq7a4X25qCKYKk+F4XRzYDxhvMh7VL/9VAvP5Ix4hLzYAh7bFc9X3wTK6RxYh7o0LdpZcwqWiGYo=
   azure:environment: public
   azure:subscriptionId:
-    secure: AAABAKvyMzLWYcqCqNqy7fD4Aq8PRYME+qtopvJWuxyUb5KFuvDN5K9cdfurPVUmZ7oGKcr7iMFH3BjGQJ0AxxMM0vA=
+    secure: AAABAMpZSSRpN8M3cMkYzYR7hnC7q3a770250eYYXYoPiIr3h9OTjRmsccu+03yXmox1DYERBFUwDI4GOP4rH4KhBS0=
   azure:tenantId:
-    secure: AAABAJWBc5FLPYcXvS/zEukD3InfdGc+8/t6HLBCES5/M7ttWiBcaeWFixjReMuliRwz9udhtzoD90AaYjqGbsN+VMc=
+    secure: AAABAFVF5UPqBLenBz0QcxJOk/7lQuKXfIrqRUlSIqeNDkP2q/H/0V1S1B9r4r5dfh3oPO5gnoeQp0z+UtAH1abGe1k=
+  pulumi-azure:compute:
+    availabilitySets:
+    - managed: true
+      name: web
+      platformFaultDomainCount: 3
+      platformUpdateDomainCount: 3
+    - managed: true
+      name: backend
+      platformFaultDomainCount: 3
+      platformUpdateDomainCount: 3
+    ipConfiguration:
+    - name: ipv4-private-dynamic
+      primary: true
+      privateIPAddressAllocation: IPv4
+    networkInterfaces:
+    - ipConfiguration: ipv4-private-dynamic
+    osProfileLinux:
+    - disablePasswordAuthentication: true
+      name: default
+      sshKeyData:
+        secure: AAABAMNFTQnP8jJPnAUm0jRK+7LrILLdAGfMSXAowLRAK8whGoGNncGqG+YWtVxJ8zVe5/JDgahGFmVr6aIpL/W6uZLy2odth6OzlPXixxV96AXB6mlKbLOIflTEJDU25gF4KvZ6EWE7P+/EiM4W2PFKDRMXNEdiqejZXw3NhTqeuq1TFNyKsUPDOJbC0GL7mrBibLu7GkpmGo/0qXGVFChTy3b/7rPGYGWf7hsiPdeHoCx3dmgZFi/cgXSjYpITAaxC6Ad6pZfBq2zgvRqrY7KKKiS93gEal9jrKLJczPexLlwWYDKxDz06VZXeWeO7Xwi0xNEqfrRjy5KY1id60tSVz7wH4ibH6j1Z9vOgUbm1FSfCuUxjz8QnRnCbTen1JLr4EkuhrpYnf8lrLE8uxl7ObQ1kwPqwDvaXpbBpjPP2j1qw4JCCHu3mkMgB1VkJseuGCQwBZXo8HRX08kQxyr5ELGAvhCMs0N/bCmoj3J57C+GHkyt2CJFH7+Zw/apMHzwsVkm5vjExg8aMcdEUYN9IN+tTsQ19pr11yRZ3pdZseJ3+7HPxhw9A9m8p3G+v2cXSABkcELyaWW8iOGWbi6ngq0rJWpiy13w7koh7X8zfrYQaaaDqd3384NynUBeU8GUmmKfcEGHOKolaHk09fHuFaGob10qd72sQhdu41NGe9FjenCaOu4KLvqUZ9+PNlf4o94rjTakkslYxiEifJXmdxCG0IgHGmjHus62C3qV8M3XvoYaJnL46SGNtlkObDw47U/Ok6F0hhz4Cp5DWqm3FdeZkYUNJ3xP/AeEokCt99jhhloSMXiw8rqiBtD/WIG2SM+tLU6WhbPdrNjotfiELyqNgFRKu9oRKJl6bSt974H+P2xKDXUXMraJrYv69xIkicpvqp3evy8itwdMbYhTuGUz6NABKAJdg9OKsx1EgiotoHPeVNfoBbeEx/EIExV3wmqhJN6+wXzv+5ux8GBoS4H8ygU4OUDeE+sxLRSUTrcHBwWczK925hUERPg==
+      sshKeyPath:
+        secure: AAABABGF6PEVor1mKHBXWEPQy6GnsgtQ615WYW47/Sgo5Yw8gJoPYZa86A4xaKO8yZZXgZEEWRtb2+OK9q8O
+    osProfiles:
+    - adminPassword:
+        secure: AAABADQVAigFm2nBDkNiF+XeBBUnxJqUiNELkEi4EDeS4unTnZePxYILqw==
+      adminUsername:
+        secure: AAABABfvfFwwSk+fd+9JI7WoZ0eXukhBMoElbHlGs7PgbsPi
+      customData: apt install -y ntpd
+      name: default
+    storageImageReference:
+    - name: ubuntu-16.04
+      offer: UbuntuServer
+      publisher: Canonical
+      sku: 16.04-LTS
+      version: latest
+    storageOSDisk:
+    - createOption: FromImage
+      diskSizeGB: "30"
+      name: default
+      osType: Linux
+    virtualMachines:
+    - availabilitySet: web
+      count: 3
+      name: web
+      networkInterface: primary
+      osProfile: default
+      osProfileLinux: default
+      storageImageReference: ubuntu-16.04
+      storageOSDisk: default
+      subnet: subnet-00
+      virtualNetwork: isim-dev
+      vmSize: Standard_B1ls
+    - availabilitySet: backend
+      count: 3
+      name: backend
+      networkInterface: primary
+      osProfile: default
+      osProfileLinux: default
+      storageImageReference: ubuntu-16.04
+      storageOSDisk: default
+      subnet: subnet-00
+      virtualNetwork: isim-dev
+      vmSize: Standard_B1ls
+  pulumi-azure:network:
+    appSecurityGroups:
+    - name: web-servers
+    - name: admin-servers
+    networkSecurityGroups:
+    - name: default
+      securityRules:
+      - allow-web-all
+      - allow-ssh-all
+    networkSecurityRules:
+    - access: Allow
+      description: allow HTTP and HTTPS
+      destinationAppSecurityGroups:
+      - web-servers
+      destinationPortRanges:
+      - "80"
+      - "443"
+      direction: Inbound
+      name: allow-web-all
+      priority: 100
+      protocol: Tcp
+      sourceAddressPrefix: AzureLoadBalancer
+      sourcePortRange: '*'
+    - access: Allow
+      description: allow SSH
+      destinationAppSecurityGroups:
+      - admin-servers
+      destinationPortRanges:
+      - "22"
+      direction: Inbound
+      name: allow-ssh-all
+      priority: 101
+      protocol: Tcp
+      sourceAddressPrefix: '*'
+      sourcePortRange: '*'
+    subnets:
+    - addressPrefix: 10.0.10.0/24
+      name: subnet-00
+      securityGroup: default
+    - addressPrefix: 10.0.20.0/24
+      name: subnet-01
+      securityGroup: default
+    - addressPrefix: 10.0.30.0/24
+      name: subnet-02
+      securityGroup: default
+    vnets:
+    - cidr: 10.0.0.0/16
+      name: isim-dev
+      subnets:
+      - subnet-00
+      - subnet-01
+      - subnet-02
+  pulumi-azure:resourceGroup:
+    location: WestUS
+    name: isim-dev

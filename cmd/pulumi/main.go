@@ -5,16 +5,21 @@ import (
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/network"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/resourcegroup"
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
+	"github.com/pulumi/pulumi/sdk/go/pulumi/config"
 )
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
-		commonTags := pulumi.StringMap{
-			"project": pulumi.String(ctx.Project()),
-			"stack":   pulumi.String(ctx.Stack()),
-		}
+		var (
+			commonTags = pulumi.StringMap{
+				"project": pulumi.String(ctx.Project()),
+				"stack":   pulumi.String(ctx.Stack()),
+			}
 
-		resourceGroup, err := resourcegroup.Up(ctx, commonTags)
+			config = config.New(ctx, "pulumi-azure")
+		)
+
+		resourceGroup, err := resourcegroup.Up(ctx, config, commonTags)
 		if err != nil {
 			return err
 		}
