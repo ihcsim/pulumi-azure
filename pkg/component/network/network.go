@@ -1,7 +1,7 @@
 package network
 
 import (
-	pulumiazure "github.com/ihcsim/pulumi-azure/v2"
+	pulumierr "github.com/ihcsim/pulumi-azure/v2/pkg/error"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/core"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/network"
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
@@ -46,7 +46,7 @@ func Up(
 		for _, key := range input.DestinationAppSecurityGroups {
 			id, exists := appSecGroupIDs[key]
 			if !exists {
-				return nil, pulumiazure.MissingConfigErr{key, "application security group"}
+				return nil, pulumierr.MissingConfigErr{key, "application security group"}
 			}
 			destinationAppSecGroups = append(
 				destinationAppSecGroups,
@@ -125,7 +125,7 @@ func Up(
 		for _, input := range input.Subnets {
 			subnet, exists := allSubnets[input]
 			if !exists {
-				return nil, pulumiazure.MissingConfigErr{input, "subnet"}
+				return nil, pulumierr.MissingConfigErr{input, "subnet"}
 			}
 			subnets = append(subnets, subnet)
 		}

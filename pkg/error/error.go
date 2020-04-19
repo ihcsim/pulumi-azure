@@ -1,4 +1,4 @@
-package pulumiazure
+package error
 
 import (
 	"fmt"

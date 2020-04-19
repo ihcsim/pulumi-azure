@@ -5,8 +5,8 @@ import (
 	"math"
 	"strings"
 
-	pulumiazure "github.com/ihcsim/pulumi-azure/v2"
 	"github.com/ihcsim/pulumi-azure/v2/config"
+	pulumierr "github.com/ihcsim/pulumi-azure/v2/pkg/error"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/compute"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/core"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/network"
@@ -61,7 +61,7 @@ func Up(
 
 			osProfileConfig, exists := config.OSProfiles[vmConfig.OSProfile]
 			if !exists {
-				return nil, pulumiazure.MissingConfigErr{vmConfig.OSProfile, "osprofile"}
+				return nil, pulumierr.MissingConfigErr{"", "osprofile"}
 			}
 
 			osProfile := compute.VirtualMachineOsProfileArgs{
@@ -73,7 +73,7 @@ func Up(
 
 			osProfileLinuxConfig, exists := config.OSProfileLinux[vmConfig.OSProfileLinux]
 			if !exists {
-				return nil, pulumiazure.MissingConfigErr{vmConfig.OSProfileLinux, "osprofile-linux"}
+				return nil, pulumierr.MissingConfigErr{"", "osprofile-linux"}
 			}
 
 			osProfileLinux := compute.VirtualMachineOsProfileLinuxConfigArgs{
@@ -88,7 +88,7 @@ func Up(
 
 			imageRefConfig, exists := config.StorageImageReference[vmConfig.StorageImageReference]
 			if !exists {
-				return nil, pulumiazure.MissingConfigErr{vmConfig.StorageImageReference, "image-reference"}
+				return nil, pulumierr.MissingConfigErr{"", "image-reference"}
 			}
 
 			imageRef := compute.VirtualMachineStorageImageReferenceArgs{
@@ -100,7 +100,7 @@ func Up(
 
 			availabilitySet, exists := availabilitySets[vmConfig.AvailabilitySet]
 			if !exists {
-				return nil, pulumiazure.MissingConfigErr{vmConfig.AvailabilitySet, "availability set"}
+				return nil, pulumierr.MissingConfigErr{"", "availability set"}
 			}
 
 			var (
@@ -117,7 +117,7 @@ func Up(
 
 				osDiskConfig, exists := config.StorageOSDisks[vmConfig.StorageOSDisk]
 				if !exists {
-					return nil, pulumiazure.MissingConfigErr{vmConfig.StorageOSDisk, "osdisk"}
+					return nil, pulumierr.MissingConfigErr{"", "osdisk"}
 				}
 
 				osDisk := compute.VirtualMachineStorageOsDiskArgs{
@@ -191,5 +191,5 @@ func createPrimaryNetworkInterface(
 		return network.NewNetworkInterface(ctx, netInfName, args)
 	}
 
-	return nil, pulumiazure.MissingConfigErr{virtualMachine, "primary network interface"}
+	return nil, pulumierr.MissingConfigErr{"", "primary network interface"}
 }
