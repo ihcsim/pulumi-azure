@@ -24,7 +24,7 @@ func main() {
 			return err
 		}
 
-		virtualNetworks, err := network.Up(ctx, resourceGroup, commonTags)
+		virtualNetworks, err := network.Up(ctx, config, resourceGroup, commonTags)
 		if err != nil {
 			return err
 		}

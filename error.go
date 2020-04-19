@@ -2,12 +2,10 @@ package pulumiazure
 
 import (
 	"fmt"
-
-	"github.com/pulumi/pulumi/sdk/go/pulumi"
 )
 
 type MissingConfigErr struct {
-	Name pulumi.String
+	Name string
 	Kind string
 }
 
