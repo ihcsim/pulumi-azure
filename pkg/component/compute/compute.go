@@ -54,16 +54,14 @@ func Up(
 	for _, virtualNetwork := range virtualNetworks {
 		for _, vmInput := range virtualMachineInput {
 			launchVM := make(chan bool)
-			subnetID := virtualNetwork.Subnets.ApplyString(func(subnets []network.VirtualNetworkSubnet) string {
-				for _, subnet := range subnets {
-					if strings.HasPrefix(subnet.Name, vmInput.Subnet) {
-						launchVM <- true
-						return *subnet.Id
-					}
+			virtualNetwork.Name.ApplyBool(func(name string) bool {
+				if strings.HasPrefix(name, vmInput.VirtualNetwork) {
+					launchVM <- true
+					return true
 				}
 
 				launchVM <- false
-				return ""
+				return false
 			})
 
 			if t := <-launchVM; !t {
@@ -102,6 +100,16 @@ func Up(
 			)
 			for i := 0; i < int(vmInput.Count); i++ {
 				instanceName := pulumi.String(fmt.Sprintf("%s%d", instanceNamePrefix, i))
+				subnetID := virtualNetwork.Subnets.ApplyString(func(subnets []network.VirtualNetworkSubnet) string {
+					for _, subnet := range subnets {
+						if strings.Contains(subnet.Name, fmt.Sprintf("subnet-0%d", i)) {
+							return *subnet.Id
+						}
+					}
+
+					return ""
+				})
+
 				netInf, err := createPrimaryNetworkInterface(ctx, cfg, instanceName, subnetID, resourceGroup, tags)
 				if err != nil {
 					return nil, err
@@ -365,7 +373,6 @@ type VirtualMachineInput struct {
 	OSProfileLinux        string
 	StorageImageReference string
 	StorageOSDisk         string
-	Subnet                string
 	VirtualNetwork        string
 	VMSize                string `json:"vmSize"`
 }

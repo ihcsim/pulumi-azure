@@ -106,7 +106,6 @@ config:
     osProfileLinux: default
     storageImageReference: ubuntu-16.04
     storageOSDisk: default
-    subnet: subnet-00
     virtualNetwork: isim-dev
     vmSize: Standard_B1ls
   - availabilitySet: backend
@@ -117,7 +116,6 @@ config:
     osProfileLinux: default
     storageImageReference: ubuntu-16.04
     storageOSDisk: default
-    subnet: subnet-00
     virtualNetwork: isim-dev
     vmSize: Standard_B1ls
   pulumi-azure:virtualNetworks:

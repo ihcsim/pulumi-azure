@@ -5,9 +5,11 @@ This project is a Pulumi program that knows how to provision the following Azure
 * A new virtual network with 3 subnets
 * An application security group
 * A network security group with 2 rules to allow HTTP and SSH accesses
-* 3 `frontend` Ubuntu VMs deployed to an availability set
+* 3 `frontend` Ubuntu VMs deployed to different subnets
+  * All VMs belong to the same availability set
   * Each VM has a 30GB OS disk attached to it
-* 3 `backend` Ubuntu VMs deployed to an availability set
+* 3 `backend` Ubuntu VMs deployed to different subnets
+  * All VMs belong to the same availability set
   * Each VM has a 30GB OS disk attached to it
 
 ## Prerequisites
