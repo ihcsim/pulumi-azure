@@ -136,7 +136,12 @@ func Up(
 	return virtualMachines, nil
 }
 
-func createAvailabilitySets(ctx *pulumi.Context, cfg *config.Config, resourceGroup *core.ResourceGroup, tags pulumi.StringMap) (map[string]pulumi.IDOutput, error) {
+func createAvailabilitySets(
+	ctx *pulumi.Context,
+	cfg *config.Config,
+	resourceGroup *core.ResourceGroup,
+	tags pulumi.StringMap) (map[string]pulumi.IDOutput, error) {
+
 	availabilitySetInput := []*AvailabilitySetInput{}
 	if err := cfg.TryObject("availabilitySets", &availabilitySetInput); err != nil {
 		return nil, err
@@ -164,7 +169,10 @@ func createAvailabilitySets(ctx *pulumi.Context, cfg *config.Config, resourceGro
 
 }
 
-func createOSProfiles(ctx *pulumi.Context, cfg *config.Config) (map[string]compute.VirtualMachineOsProfileArgs, error) {
+func createOSProfiles(
+	ctx *pulumi.Context,
+	cfg *config.Config) (map[string]compute.VirtualMachineOsProfileArgs, error) {
+
 	osProfileInput := []*OSProfileInput{}
 	if err := cfg.TryObject("osProfiles", &osProfileInput); err != nil {
 		return nil, err
@@ -182,7 +190,10 @@ func createOSProfiles(ctx *pulumi.Context, cfg *config.Config) (map[string]compu
 	return osProfiles, nil
 }
 
-func createOSProfilesLinux(ctx *pulumi.Context, cfg *config.Config) (map[string]compute.VirtualMachineOsProfileLinuxConfigArgs, error) {
+func createOSProfilesLinux(
+	ctx *pulumi.Context,
+	cfg *config.Config) (map[string]compute.VirtualMachineOsProfileLinuxConfigArgs, error) {
+
 	osProfileLinuxInput := []*OSProfileLinuxInput{}
 	if err := cfg.TryObject("osProfilesLinux", &osProfileLinuxInput); err != nil {
 		return nil, err
@@ -204,7 +215,10 @@ func createOSProfilesLinux(ctx *pulumi.Context, cfg *config.Config) (map[string]
 	return osProfilesLinux, nil
 }
 
-func createStorageImageReferences(ctx *pulumi.Context, cfg *config.Config) (map[string]compute.VirtualMachineStorageImageReferenceArgs, error) {
+func createStorageImageReferences(
+	ctx *pulumi.Context,
+	cfg *config.Config) (map[string]compute.VirtualMachineStorageImageReferenceArgs, error) {
+
 	storageImageReferenceInput := []*StorageImageReferenceInput{}
 	if err := cfg.TryObject("storageImageReference", &storageImageReferenceInput); err != nil {
 		return nil, err
@@ -223,7 +237,10 @@ func createStorageImageReferences(ctx *pulumi.Context, cfg *config.Config) (map[
 	return storageImageReferences, nil
 }
 
-func createStorageOSDisks(ctx *pulumi.Context, cfg *config.Config) (map[string]compute.VirtualMachineStorageOsDiskArgs, error) {
+func createStorageOSDisks(
+	ctx *pulumi.Context,
+	cfg *config.Config) (map[string]compute.VirtualMachineStorageOsDiskArgs, error) {
+
 	storageOSDiskInput := []*StorageOSDiskInput{}
 	if err := cfg.TryObject("storageOSDisk", &storageOSDiskInput); err != nil {
 		return nil, err
