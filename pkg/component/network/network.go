@@ -14,6 +14,70 @@ func Up(
 	resourceGroup *core.ResourceGroup,
 	tags pulumi.StringMap) ([]*network.VirtualNetwork, error) {
 
+	appSecGroupIDs, err := createApplicationSecurityGroups(ctx, cfg, resourceGroup, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	networkSecurityRules, err := createNetworkSecurityRules(ctx, cfg, appSecGroupIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	networkSecurityGroups, err := createNetworkSecurityGroups(ctx, cfg, networkSecurityRules, resourceGroup, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	allSubnets, err := createSubnets(ctx, cfg, networkSecurityGroups)
+	if err != nil {
+		return nil, err
+	}
+
+	virtualNetworkInput := []*VirtualNetworkInput{}
+	if err := cfg.TryObject("virtualNetworks", &virtualNetworkInput); err != nil {
+		return nil, err
+	}
+
+	networks := []*network.VirtualNetwork{}
+	for _, input := range virtualNetworkInput {
+		subnets := network.VirtualNetworkSubnetArray{}
+		for _, input := range input.Subnets {
+			subnet, exists := allSubnets[input]
+			if !exists {
+				return nil, pulumierr.MissingConfigErr{input, "subnet"}
+			}
+			subnets = append(subnets, subnet)
+		}
+
+		addressSpaces := pulumi.StringArray{
+			pulumi.String(input.CIDR),
+		}
+
+		network, err := network.NewVirtualNetwork(ctx, input.Name,
+			&network.VirtualNetworkArgs{
+				AddressSpaces:     addressSpaces,
+				Location:          resourceGroup.Location,
+				ResourceGroupName: resourceGroup.Name,
+				Tags:              tags,
+				Subnets:           subnets,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		networks = append(networks, network)
+	}
+
+	return networks, nil
+}
+
+func createApplicationSecurityGroups(
+	ctx *pulumi.Context,
+	cfg *config.Config,
+	resourceGroup *core.ResourceGroup,
+	tags pulumi.StringMap) (map[string]pulumi.IDOutput, error) {
+
 	appSecGroupsInput := []*ApplicationSecurityGroupInput{}
 	if err := cfg.TryObject("appSecurityGroups", &appSecGroupsInput); err != nil {
 		return nil, err
@@ -34,6 +98,14 @@ func Up(
 
 		appSecGroupIDs[input.Name] = appSecGroup.ID()
 	}
+
+	return appSecGroupIDs, nil
+}
+
+func createNetworkSecurityRules(
+	ctx *pulumi.Context,
+	cfg *config.Config,
+	appSecGroupIDs map[string]pulumi.IDOutput) (map[string]network.NetworkSecurityGroupSecurityRuleArgs, error) {
 
 	netSecRulesInput := []*NetworkSecurityRuleInput{}
 	if err := cfg.TryObject("networkSecurityRules", &netSecRulesInput); err != nil {
@@ -74,6 +146,16 @@ func Up(
 		}
 	}
 
+	return networkSecurityRules, nil
+}
+
+func createNetworkSecurityGroups(
+	ctx *pulumi.Context,
+	cfg *config.Config,
+	networkSecurityRules map[string]network.NetworkSecurityGroupSecurityRuleArgs,
+	resourceGroup *core.ResourceGroup,
+	tags pulumi.StringMap) (map[string]pulumi.IDOutput, error) {
+
 	netSecGroupInput := []*NetworkSecurityGroupInput{}
 	if err := cfg.TryObject("networkSecurityGroups", &netSecGroupInput); err != nil {
 		return nil, err
@@ -100,56 +182,29 @@ func Up(
 		networkSecurityGroups[input.Name] = securityGroup.ID()
 	}
 
+	return networkSecurityGroups, nil
+}
+
+func createSubnets(
+	ctx *pulumi.Context,
+	cfg *config.Config,
+	networkSecurityGroups map[string]pulumi.IDOutput) (map[string]network.VirtualNetworkSubnetArgs, error) {
+
 	var subnetInput []*SubnetInput
 	if err := cfg.TryObject("subnets", &subnetInput); err != nil {
 		return nil, err
 	}
 
-	allSubnets := map[string]network.VirtualNetworkSubnetArgs{}
+	subnets := map[string]network.VirtualNetworkSubnetArgs{}
 	for _, input := range subnetInput {
-		allSubnets[input.Name] = network.VirtualNetworkSubnetArgs{
+		subnets[input.Name] = network.VirtualNetworkSubnetArgs{
 			AddressPrefix: pulumi.String(input.AddressPrefix),
 			Name:          pulumi.String(input.Name),
 			SecurityGroup: networkSecurityGroups[input.SecurityGroup],
 		}
 	}
 
-	virtualNetworkInput := []*VirtualNetworkInput{}
-	if err := cfg.TryObject("virtualNetworks", &virtualNetworkInput); err != nil {
-		return nil, err
-	}
-
-	networks := []*network.VirtualNetwork{}
-	for _, input := range virtualNetworkInput {
-		subnets := network.VirtualNetworkSubnetArray{}
-		for _, input := range input.Subnets {
-			subnet, exists := allSubnets[input]
-			if !exists {
-				return nil, pulumierr.MissingConfigErr{input, "subnet"}
-			}
-			subnets = append(subnets, subnet)
-		}
-
-		addressSpaces := pulumi.StringArray{
-			pulumi.String(input.CIDR),
-		}
-
-		network, err := network.NewVirtualNetwork(ctx, input.Name,
-			&network.VirtualNetworkArgs{
-				AddressSpaces:     addressSpaces,
-				Location:          resourceGroup.Location,
-				ResourceGroupName: resourceGroup.Name,
-				Tags:              tags,
-				Subnets:           subnets,
-			})
-		if err != nil {
-			return nil, err
-		}
-
-		networks = append(networks, network)
-	}
-
-	return networks, nil
+	return subnets, nil
 }
 
 type ApplicationSecurityGroupInput struct {
