@@ -29,7 +29,7 @@ func main() {
 			return err
 		}
 
-		if _, err := compute.Up(ctx, resourceGroup, virtualNetworks, commonTags); err != nil {
+		if _, err := compute.Up(ctx, config, resourceGroup, virtualNetworks, commonTags); err != nil {
 			return err
 		}
 
