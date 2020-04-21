@@ -116,6 +116,11 @@ func Up(
 				return nil, err
 			}
 
+			if len(input.CustomData) > 0 {
+				customData := strings.Join(input.CustomData, " && ")
+				osProfile.CustomData = pulumi.Sprintf("%s && %s", osProfile.CustomData, customData)
+			}
+
 			osProfile.ComputerName = instanceName
 			storageOSDisk.Name = instanceName
 
@@ -188,10 +193,11 @@ func createOSProfiles(
 
 	osProfiles := map[string]compute.VirtualMachineOsProfileArgs{}
 	for _, input := range osProfileInput {
+		customData := strings.Join(input.CustomData, " && ")
 		osProfiles[input.Name] = compute.VirtualMachineOsProfileArgs{
 			AdminPassword: pulumi.String(input.AdminPassword),
 			AdminUsername: pulumi.String(input.AdminUsername),
-			CustomData:    pulumi.String(input.CustomData),
+			CustomData:    pulumi.String(customData),
 		}
 	}
 
@@ -359,7 +365,7 @@ type OSProfileLinuxInput struct {
 type OSProfileInput struct {
 	AdminPassword string
 	AdminUsername string
-	CustomData    string
+	CustomData    []string
 	Name          string
 }
 
@@ -382,6 +388,7 @@ type VirtualMachineInput struct {
 	AppSecGroup           string
 	AvailabilitySet       string
 	Count                 int
+	CustomData            []string
 	Name                  string
 	NetworkInterface      string
 	OSProfile             string

@@ -45,7 +45,7 @@ config:
     - allow-https-azure-cloud
   pulumi-azure:networkSecurityRules:
   - access: Allow
-    description: allow HTTP and HTTPS from Azure LoadBalancer
+    description: allow HTTP and HTTPS to web servers from Azure LoadBalancer
     destinationAppSecurityGroups:
     - web-servers
     destinationPortRanges:
@@ -58,7 +58,7 @@ config:
     sourceAddressPrefix: AzureLoadBalancer
     sourcePortRange: '*'
   - access: Allow
-    description: allow SSH from anywhere
+    description: allow SSH to admin-servers from virtual network
     destinationAppSecurityGroups:
     - admin-servers
     destinationPortRanges:
@@ -67,11 +67,11 @@ config:
     name: allow-ssh-all
     priority: 101
     protocol: Tcp
-    sourceAddressPrefix: '*'
+    sourceAddressPrefix: VirtualNetwork
     sourcePortRange: '*'
   - access: Allow
     description: allow HTTPS from anywhere
-    destinationAddressPrefix: 'Internet'
+    destinationAddressPrefix: Internet
     destinationPortRanges:
     - "443"
     direction: Inbound
@@ -94,7 +94,7 @@ config:
     sourcePortRange: '*'
   - access: Allow
     description: allow SSH to other subnets
-    destinationAddressPrefix: 'VirtualNetwork'
+    destinationAddressPrefix: VirtualNetwork
     destinationPortRanges:
     - "22"
     - "3389"
@@ -106,7 +106,7 @@ config:
     sourcePortRange: '*'
   - access: Allow
     description: allow HTTPS to other AzureCloud endpoints
-    destinationAddressPrefix: 'AzureCloud'
+    destinationAddressPrefix: AzureCloud
     destinationPortRanges:
     - "443"
     direction: Outbound
@@ -120,7 +120,9 @@ config:
       secure: AAABADQVAigFm2nBDkNiF+XeBBUnxJqUiNELkEi4EDeS4unTnZePxYILqw==
     adminUsername:
       secure: AAABABfvfFwwSk+fd+9JI7WoZ0eXukhBMoElbHlGs7PgbsPi
-    customData: apt install -y ntpd
+    customData:
+    - apt update -y
+    - apt install -y ntp
     name: default
   pulumi-azure:osProfilesLinux:
   - disablePasswordAuthentication: true
@@ -165,6 +167,8 @@ config:
   - appSecGroup: web-servers
     availabilitySet: web
     count: 3
+    customData:
+    - apt install -y apache2
     name: web
     networkInterface: primary
     osProfile: default
@@ -172,7 +176,7 @@ config:
     storageImageReference: ubuntu-16.04
     storageOSDisk: default
     virtualNetwork: isim-dev
-    vmSize: Standard_B1ls
+    vmSize: Standard_B2s
   - appSecGroup: admin-servers
     availabilitySet: backend
     count: 3
