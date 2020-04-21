@@ -50,21 +50,25 @@ func Up(
 		return nil, err
 	}
 
+	// this channel is used by the `Output.Apply()` methods to pass values back to
+	// the parent goroutine
+	applyChan := make(chan bool)
+	defer close(applyChan)
+
 	virtualMachines := []*compute.VirtualMachine{}
 	for _, virtualNetwork := range virtualNetworks {
 		for _, vmInput := range virtualMachineInput {
-			launchVM := make(chan bool)
 			virtualNetwork.Name.ApplyBool(func(name string) bool {
 				if strings.HasPrefix(name, vmInput.VirtualNetwork) {
-					launchVM <- true
+					applyChan <- true
 					return true
 				}
 
-				launchVM <- false
+				applyChan <- false
 				return false
 			})
 
-			if t := <-launchVM; !t {
+			if launchVM := <-applyChan; !launchVM {
 				continue
 			}
 
@@ -99,10 +103,14 @@ func Up(
 				instanceNamePrefix = fmt.Sprintf("%s-%s", vmInput.Name, strings.Repeat("0", paddingLen))
 			)
 			for i := 0; i < int(vmInput.Count); i++ {
-				instanceName := pulumi.String(fmt.Sprintf("%s%d", instanceNamePrefix, i))
+				var (
+					instanceName = pulumi.String(fmt.Sprintf("%s%d", instanceNamePrefix, i))
+					targetSubnet = fmt.Sprintf("subnet-0%d", i)
+				)
+
 				subnetID := virtualNetwork.Subnets.ApplyString(func(subnets []network.VirtualNetworkSubnet) string {
 					for _, subnet := range subnets {
-						if strings.Contains(subnet.Name, fmt.Sprintf("subnet-0%d", i)) {
+						if strings.HasPrefix(subnet.Name, targetSubnet) {
 							return *subnet.Id
 						}
 					}
@@ -110,7 +118,7 @@ func Up(
 					return ""
 				})
 
-				netInf, err := createPrimaryNetworkInterface(ctx, cfg, instanceName, subnetID, resourceGroup, tags)
+				netInf, err := createPrimaryNetworkInterface(ctx, cfg, resourceGroup, instanceName, subnetID, tags)
 				if err != nil {
 					return nil, err
 				}
@@ -269,9 +277,9 @@ func createStorageOSDisks(
 func createPrimaryNetworkInterface(
 	ctx *pulumi.Context,
 	cfg *config.Config,
+	resourceGroup *core.ResourceGroup,
 	virtualMachine pulumi.String,
 	subnetID pulumi.StringOutput,
-	resourceGroup *core.ResourceGroup,
 	tags pulumi.StringMap) (*network.NetworkInterface, error) {
 
 	networkInterfaceInput := []*NetworkInterfaceInput{}

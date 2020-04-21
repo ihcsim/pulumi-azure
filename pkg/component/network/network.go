@@ -136,6 +136,7 @@ func createNetworkSecurityRules(
 			Access:                                 pulumi.String(input.Access),
 			Description:                            pulumi.String(input.Description),
 			DestinationPortRanges:                  destinationPortRanges,
+			DestinationAddressPrefix:               pulumi.String(input.DestinationAddressPrefix),
 			DestinationApplicationSecurityGroupIds: destinationAppSecGroups,
 			Direction:                              pulumi.String(input.Direction),
 			Name:                                   pulumi.String(input.Name),
@@ -219,6 +220,7 @@ type NetworkSecurityGroupInput struct {
 type NetworkSecurityRuleInput struct {
 	Access                       string
 	Description                  string
+	DestinationAddressPrefix     string
 	DestinationAppSecurityGroups []string
 	DestinationPortRanges        []string
 	Direction                    string

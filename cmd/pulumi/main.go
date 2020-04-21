@@ -1,8 +1,10 @@
 package main
 
 import (
+	"github.com/ihcsim/pulumi-azure/v2/pkg/component/bastion"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/compute"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/network"
+	"github.com/ihcsim/pulumi-azure/v2/pkg/component/publicip"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/resourcegroup"
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
 	"github.com/pulumi/pulumi/sdk/go/pulumi/config"
@@ -29,7 +31,16 @@ func main() {
 			return err
 		}
 
+		publicIPs, err := publicip.Up(ctx, config, resourceGroup, commonTags)
+		if err != nil {
+			return err
+		}
+
 		if _, err := compute.Up(ctx, config, resourceGroup, virtualNetworks, commonTags); err != nil {
+			return err
+		}
+
+		if _, err := bastion.Up(ctx, config, publicIPs, resourceGroup, virtualNetworks, commonTags); err != nil {
 			return err
 		}
 
