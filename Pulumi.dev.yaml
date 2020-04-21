@@ -120,9 +120,12 @@ config:
       secure: AAABADQVAigFm2nBDkNiF+XeBBUnxJqUiNELkEi4EDeS4unTnZePxYILqw==
     adminUsername:
       secure: AAABABfvfFwwSk+fd+9JI7WoZ0eXukhBMoElbHlGs7PgbsPi
-    customData:
-    - apt update -y
-    - apt install -y ntp
+    customData: |
+      #cloud-config
+
+      package_update: true
+      package_upgrade: true
+      packages: ['ntp']
     name: default
   pulumi-azure:osProfilesLinux:
   - disablePasswordAuthentication: true
@@ -167,8 +170,8 @@ config:
   - appSecGroup: web-servers
     availabilitySet: web
     count: 3
-    customData:
-    - apt install -y apache2
+    customData: |
+      packages: ['apache2']
     name: web
     networkInterface: primary
     osProfile: default
