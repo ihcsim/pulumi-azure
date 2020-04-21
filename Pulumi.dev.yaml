@@ -41,6 +41,8 @@ config:
     securityRules:
     - allow-https-all
     - allow-https-gateway-manager
+    - allow-ssh-virtual-network
+    - allow-https-azure-cloud
   pulumi-azure:networkSecurityRules:
   - access: Allow
     description: allow HTTP and HTTPS from Azure LoadBalancer
@@ -69,7 +71,7 @@ config:
     sourcePortRange: '*'
   - access: Allow
     description: allow HTTPS from anywhere
-    destinationAddressPrefix: '*'
+    destinationAddressPrefix: 'Internet'
     destinationPortRanges:
     - "443"
     direction: Inbound
@@ -83,11 +85,35 @@ config:
     destinationAddressPrefix: '*'
     destinationPortRanges:
     - "443"
+    - "4443"
     direction: Inbound
     name: allow-https-gateway-manager
     priority: 200
     protocol: Tcp
     sourceAddressPrefix: GatewayManager
+    sourcePortRange: '*'
+  - access: Allow
+    description: allow SSH to other subnets
+    destinationAddressPrefix: 'VirtualNetwork'
+    destinationPortRanges:
+    - "22"
+    - "3389"
+    direction: Outbound
+    name: allow-ssh-virtual-network
+    priority: 201
+    protocol: Tcp
+    sourceAddressPrefix: '*'
+    sourcePortRange: '*'
+  - access: Allow
+    description: allow HTTPS to other AzureCloud endpoints
+    destinationAddressPrefix: 'AzureCloud'
+    destinationPortRanges:
+    - "443"
+    direction: Outbound
+    name: allow-https-azure-cloud
+    priority: 202
+    protocol: Tcp
+    sourceAddressPrefix: '*'
     sourcePortRange: '*'
   pulumi-azure:osProfiles:
   - adminPassword:
@@ -132,7 +158,7 @@ config:
   - addressPrefix: 10.0.30.0/24
     name: subnet-02
     securityGroup: default
-  - addressPrefix: 10.100.0.0/27
+  - addressPrefix: 10.0.100.0/27
     name: AzureBastionSubnet
     securityGroup: bastion
   pulumi-azure:virtualMachines:
