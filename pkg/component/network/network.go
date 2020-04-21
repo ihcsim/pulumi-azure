@@ -12,7 +12,7 @@ func Up(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	resourceGroup *core.ResourceGroup,
-	tags pulumi.StringMap) ([]*network.VirtualNetwork, error) {
+	tags pulumi.StringMap) (map[string]*network.VirtualNetwork, error) {
 
 	appSecGroupIDs, err := createApplicationSecurityGroups(ctx, cfg, resourceGroup, tags)
 	if err != nil {
@@ -39,7 +39,7 @@ func Up(
 		return nil, err
 	}
 
-	networks := []*network.VirtualNetwork{}
+	networks := map[string]*network.VirtualNetwork{}
 	for _, input := range virtualNetworkInput {
 		subnets := network.VirtualNetworkSubnetArray{}
 		for _, input := range input.Subnets {
@@ -66,7 +66,7 @@ func Up(
 			return nil, err
 		}
 
-		networks = append(networks, network)
+		networks[input.Name] = network
 	}
 
 	return networks, nil

@@ -17,7 +17,7 @@ func Up(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	resourceGroup *core.ResourceGroup,
-	virtualNetworks []*network.VirtualNetwork,
+	virtualNetworks map[string]*network.VirtualNetwork,
 	tags pulumi.StringMap) ([]*compute.VirtualMachine, error) {
 
 	availabilitySets, err := createAvailabilitySets(ctx, cfg, resourceGroup, tags)
@@ -50,102 +50,82 @@ func Up(
 		return nil, err
 	}
 
-	// this channel is used by the `Output.Apply()` methods to pass values back to
-	// the parent goroutine
-	applyChan := make(chan bool)
-	defer close(applyChan)
-
 	virtualMachines := []*compute.VirtualMachine{}
-	for _, virtualNetwork := range virtualNetworks {
-		for _, vmInput := range virtualMachineInput {
-			virtualNetwork.Name.ApplyBool(func(name string) bool {
-				if strings.HasPrefix(name, vmInput.VirtualNetwork) {
-					applyChan <- true
-					return true
+	for _, input := range virtualMachineInput {
+		virtualNetwork, exists := virtualNetworks[input.VirtualNetwork]
+		if !exists {
+			return nil, pulumierr.MissingConfigErr{input.VirtualNetwork, "virtual network"}
+		}
+
+		osProfile, exists := osProfiles[input.OSProfile]
+		if !exists {
+			return nil, pulumierr.MissingConfigErr{input.OSProfile, "osprofile"}
+		}
+
+		osProfileLinux, exists := osProfilesLinux[input.OSProfileLinux]
+		if !exists {
+			return nil, pulumierr.MissingConfigErr{input.OSProfileLinux, "osprofile-linux"}
+		}
+
+		storageImageReference, exists := storageImageReferences[input.StorageImageReference]
+		if !exists {
+			return nil, pulumierr.MissingConfigErr{input.StorageImageReference, "storage-image-reference"}
+		}
+
+		storageOSDisk, exists := storageOSDisks[input.StorageOSDisk]
+		if !exists {
+			return nil, pulumierr.MissingConfigErr{input.StorageOSDisk, "storage-os-disk"}
+		}
+		storageOSDisk.Name = pulumi.String(input.Name)
+
+		availabilitySet, exists := availabilitySets[input.AvailabilitySet]
+		if !exists {
+			return nil, pulumierr.MissingConfigErr{input.AvailabilitySet, "availability set"}
+		}
+
+		var (
+			paddingLen         = int(math.Round(float64(input.Count)/10)) + 1
+			instanceNamePrefix = fmt.Sprintf("%s-%s", input.Name, strings.Repeat("0", paddingLen))
+		)
+
+		for i := 0; i < input.Count; i++ {
+			instanceName := pulumi.String(fmt.Sprintf("%s%d", instanceNamePrefix, i))
+			index := i % input.Count
+			subnetID := virtualNetwork.Subnets.Index(pulumi.Int(index)).Id().ApplyString(func(id *string) string {
+				if id == nil {
+					return ""
 				}
 
-				applyChan <- false
-				return false
+				return *id
 			})
 
-			if launchVM := <-applyChan; !launchVM {
-				continue
+			netInf, err := createPrimaryNetworkInterface(ctx, cfg, resourceGroup, instanceName, subnetID, tags)
+			if err != nil {
+				return nil, err
 			}
 
-			osProfile, exists := osProfiles[vmInput.OSProfile]
-			if !exists {
-				return nil, pulumierr.MissingConfigErr{vmInput.OSProfile, "osprofile"}
+			osProfile.ComputerName = instanceName
+			storageOSDisk.Name = instanceName
+
+			virtualMachine, err := compute.NewVirtualMachine(ctx, string(instanceName), &compute.VirtualMachineArgs{
+				AvailabilitySetId:         availabilitySet,
+				Location:                  resourceGroup.Location,
+				Name:                      instanceName,
+				OsProfile:                 osProfile,
+				OsProfileLinuxConfig:      osProfileLinux,
+				PrimaryNetworkInterfaceId: netInf.ID(),
+				NetworkInterfaceIds:       pulumi.StringArray{netInf.ID()},
+				StorageImageReference:     storageImageReference,
+				ResourceGroupName:         resourceGroup.Name,
+				StorageOsDisk:             storageOSDisk,
+				Tags:                      tags,
+				VmSize:                    pulumi.String(input.VMSize),
+			})
+			if err != nil {
+				return nil, err
 			}
 
-			osProfileLinux, exists := osProfilesLinux[vmInput.OSProfileLinux]
-			if !exists {
-				return nil, pulumierr.MissingConfigErr{vmInput.OSProfileLinux, "osprofile-linux"}
-			}
-
-			storageImageReference, exists := storageImageReferences[vmInput.StorageImageReference]
-			if !exists {
-				return nil, pulumierr.MissingConfigErr{vmInput.StorageImageReference, "storage-image-reference"}
-			}
-
-			storageOSDisk, exists := storageOSDisks[vmInput.StorageOSDisk]
-			if !exists {
-				return nil, pulumierr.MissingConfigErr{vmInput.StorageOSDisk, "storage-os-disk"}
-			}
-			storageOSDisk.Name = pulumi.String(vmInput.Name)
-
-			availabilitySet, exists := availabilitySets[vmInput.AvailabilitySet]
-			if !exists {
-				return nil, pulumierr.MissingConfigErr{vmInput.AvailabilitySet, "availability set"}
-			}
-
-			var (
-				paddingLen         = int(math.Round(float64(vmInput.Count)/10)) + 1
-				instanceNamePrefix = fmt.Sprintf("%s-%s", vmInput.Name, strings.Repeat("0", paddingLen))
-			)
-			for i := 0; i < int(vmInput.Count); i++ {
-				var (
-					instanceName = pulumi.String(fmt.Sprintf("%s%d", instanceNamePrefix, i))
-					targetSubnet = fmt.Sprintf("subnet-0%d", i)
-				)
-
-				subnetID := virtualNetwork.Subnets.ApplyString(func(subnets []network.VirtualNetworkSubnet) string {
-					for _, subnet := range subnets {
-						if strings.HasPrefix(subnet.Name, targetSubnet) {
-							return *subnet.Id
-						}
-					}
-
-					return ""
-				})
-
-				netInf, err := createPrimaryNetworkInterface(ctx, cfg, resourceGroup, instanceName, subnetID, tags)
-				if err != nil {
-					return nil, err
-				}
-
-				osProfile.ComputerName = instanceName
-				storageOSDisk.Name = instanceName
-
-				virtualMachine, err := compute.NewVirtualMachine(ctx, string(instanceName), &compute.VirtualMachineArgs{
-					AvailabilitySetId:         availabilitySet,
-					Location:                  resourceGroup.Location,
-					Name:                      instanceName,
-					OsProfile:                 osProfile,
-					OsProfileLinuxConfig:      osProfileLinux,
-					PrimaryNetworkInterfaceId: netInf.ID(),
-					NetworkInterfaceIds:       pulumi.StringArray{netInf.ID()},
-					StorageImageReference:     storageImageReference,
-					ResourceGroupName:         resourceGroup.Name,
-					StorageOsDisk:             storageOSDisk,
-					Tags:                      tags,
-					VmSize:                    pulumi.String(vmInput.VMSize),
-				})
-				if err != nil {
-					return nil, err
-				}
-
-				virtualMachines = append(virtualMachines, virtualMachine)
-			}
+			virtualMachines = append(virtualMachines, virtualMachine)
 		}
 	}
 
