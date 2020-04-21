@@ -71,14 +71,14 @@ config:
     sourcePortRange: '*'
   - access: Allow
     description: allow HTTPS from anywhere
-    destinationAddressPrefix: Internet
+    destinationAddressPrefix: 'VirtualNetwork'
     destinationPortRanges:
     - "443"
     direction: Inbound
     name: allow-https-all
     priority: 102
     protocol: Tcp
-    sourceAddressPrefix: '*'
+    sourceAddressPrefix: Internet
     sourcePortRange: '*'
   - access: Allow
     description: allow HTTPS from Gateway Manager
