@@ -95,14 +95,20 @@ func Up(
 		)
 
 		for i := 0; i < input.Count; i++ {
-			instanceName := pulumi.String(fmt.Sprintf("%s%d", instanceNamePrefix, i))
-			index := i % input.Count
-			subnetID := virtualNetwork.Subnets.Index(pulumi.Int(index)).Id().ApplyString(func(id *string) string {
-				if id == nil {
-					return ""
+			var (
+				instanceName = pulumi.String(fmt.Sprintf("%s%d", instanceNamePrefix, i))
+				targetSubnet = fmt.Sprintf("subnet-0%d", i)
+			)
+			subnetID := virtualNetwork.Subnets.ApplyString(func(subnets []network.VirtualNetworkSubnet) (string, error) {
+				for _, subnet := range subnets {
+					if strings.Contains(subnet.Name, targetSubnet) {
+						if subnet.Id == nil {
+							return "", pulumierr.MissingConfigErr{targetSubnet, "subnet ID"}
+						}
+						return *subnet.Id, nil
+					}
 				}
-
-				return *id
+				return "", nil
 			})
 
 			netInf, err := createPrimaryNetworkInterface(ctx, cfg, appSecGroup, resourceGroup, instanceName, subnetID, tags)
