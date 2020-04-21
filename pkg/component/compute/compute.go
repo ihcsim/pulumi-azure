@@ -16,6 +16,7 @@ import (
 func Up(
 	ctx *pulumi.Context,
 	cfg *config.Config,
+	appSecGroups map[string]*network.ApplicationSecurityGroup,
 	resourceGroup *core.ResourceGroup,
 	virtualNetworks map[string]*network.VirtualNetwork,
 	tags pulumi.StringMap) ([]*compute.VirtualMachine, error) {
@@ -83,6 +84,11 @@ func Up(
 			return nil, pulumierr.MissingConfigErr{input.AvailabilitySet, "availability set"}
 		}
 
+		appSecGroup, exists := appSecGroups[input.AppSecGroup]
+		if !exists {
+			return nil, pulumierr.MissingConfigErr{input.AppSecGroup, "application security group"}
+		}
+
 		var (
 			paddingLen         = int(math.Round(float64(input.Count)/10)) + 1
 			instanceNamePrefix = fmt.Sprintf("%s-%s", input.Name, strings.Repeat("0", paddingLen))
@@ -99,7 +105,7 @@ func Up(
 				return *id
 			})
 
-			netInf, err := createPrimaryNetworkInterface(ctx, cfg, resourceGroup, instanceName, subnetID, tags)
+			netInf, err := createPrimaryNetworkInterface(ctx, cfg, appSecGroup, resourceGroup, instanceName, subnetID, tags)
 			if err != nil {
 				return nil, err
 			}
@@ -257,6 +263,7 @@ func createStorageOSDisks(
 func createPrimaryNetworkInterface(
 	ctx *pulumi.Context,
 	cfg *config.Config,
+	appSecGroup *network.ApplicationSecurityGroup,
 	resourceGroup *core.ResourceGroup,
 	virtualMachine pulumi.String,
 	subnetID pulumi.StringOutput,
@@ -298,7 +305,20 @@ func createPrimaryNetworkInterface(
 		}
 
 		netInfName := fmt.Sprintf("%s-primary", virtualMachine)
-		return network.NewNetworkInterface(ctx, netInfName, args)
+		netInf, err := network.NewNetworkInterface(ctx, netInfName, args)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, err := network.NewNetworkInterfaceApplicationSecurityGroupAssociation(ctx, netInfName,
+			&network.NetworkInterfaceApplicationSecurityGroupAssociationArgs{
+				ApplicationSecurityGroupId: appSecGroup.ID(),
+				NetworkInterfaceId:         netInf.ID(),
+			}); err != nil {
+			return nil, err
+		}
+
+		return netInf, nil
 	}
 
 	return nil, pulumierr.MissingConfigErr{string(virtualMachine), "primary network interface"}
@@ -353,6 +373,7 @@ type StorageOSDiskInput struct {
 }
 
 type VirtualMachineInput struct {
+	AppSecGroup           string
 	AvailabilitySet       string
 	Count                 int
 	Name                  string

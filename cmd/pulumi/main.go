@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/ihcsim/pulumi-azure/v2/pkg/component/appsecgroup"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/bastion"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/compute"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/network"
@@ -18,29 +19,34 @@ func main() {
 				"stack":   pulumi.String(ctx.Stack()),
 			}
 
-			config = config.New(ctx, "pulumi-azure")
+			cfg = config.New(ctx, "pulumi-azure")
 		)
 
-		resourceGroup, err := resourcegroup.Up(ctx, config, commonTags)
+		resourceGroup, err := resourcegroup.Up(ctx, cfg, commonTags)
 		if err != nil {
 			return err
 		}
 
-		virtualNetworks, err := network.Up(ctx, config, resourceGroup, commonTags)
+		appSecGroups, err := appsecgroup.Up(ctx, cfg, resourceGroup, commonTags)
 		if err != nil {
 			return err
 		}
 
-		publicIPs, err := publicip.Up(ctx, config, resourceGroup, commonTags)
+		virtualNetworks, err := network.Up(ctx, cfg, appSecGroups, resourceGroup, commonTags)
 		if err != nil {
 			return err
 		}
 
-		if _, err := compute.Up(ctx, config, resourceGroup, virtualNetworks, commonTags); err != nil {
+		if _, err := compute.Up(ctx, cfg, appSecGroups, resourceGroup, virtualNetworks, commonTags); err != nil {
 			return err
 		}
 
-		if _, err := bastion.Up(ctx, config, publicIPs, resourceGroup, virtualNetworks, commonTags); err != nil {
+		publicIPs, err := publicip.Up(ctx, cfg, resourceGroup, commonTags)
+		if err != nil {
+			return err
+		}
+
+		if _, err := bastion.Up(ctx, cfg, publicIPs, resourceGroup, virtualNetworks, commonTags); err != nil {
 			return err
 		}
 

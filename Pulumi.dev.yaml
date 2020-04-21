@@ -162,7 +162,8 @@ config:
     name: AzureBastionSubnet
     securityGroup: bastion
   pulumi-azure:virtualMachines:
-  - availabilitySet: web
+  - appSecGroup: web-servers
+    availabilitySet: web
     count: 3
     name: web
     networkInterface: primary
@@ -172,7 +173,8 @@ config:
     storageOSDisk: default
     virtualNetwork: isim-dev
     vmSize: Standard_B1ls
-  - availabilitySet: backend
+  - appSecGroup: admin-servers
+    availabilitySet: backend
     count: 3
     name: backend
     networkInterface: primary

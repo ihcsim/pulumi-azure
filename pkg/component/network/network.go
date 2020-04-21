@@ -11,15 +11,11 @@ import (
 func Up(
 	ctx *pulumi.Context,
 	cfg *config.Config,
+	appSecGroups map[string]*network.ApplicationSecurityGroup,
 	resourceGroup *core.ResourceGroup,
 	tags pulumi.StringMap) (map[string]*network.VirtualNetwork, error) {
 
-	appSecGroupIDs, err := createApplicationSecurityGroups(ctx, cfg, resourceGroup, tags)
-	if err != nil {
-		return nil, err
-	}
-
-	networkSecurityRules, err := createNetworkSecurityRules(ctx, cfg, appSecGroupIDs)
+	networkSecurityRules, err := createNetworkSecurityRules(ctx, cfg, appSecGroups)
 	if err != nil {
 		return nil, err
 	}
@@ -72,40 +68,10 @@ func Up(
 	return networks, nil
 }
 
-func createApplicationSecurityGroups(
-	ctx *pulumi.Context,
-	cfg *config.Config,
-	resourceGroup *core.ResourceGroup,
-	tags pulumi.StringMap) (map[string]pulumi.IDOutput, error) {
-
-	appSecGroupsInput := []*ApplicationSecurityGroupInput{}
-	if err := cfg.TryObject("appSecurityGroups", &appSecGroupsInput); err != nil {
-		return nil, err
-	}
-
-	appSecGroupIDs := map[string]pulumi.IDOutput{}
-	for _, input := range appSecGroupsInput {
-		appSecGroup, err := network.NewApplicationSecurityGroup(ctx, input.Name,
-			&network.ApplicationSecurityGroupArgs{
-				Location:          resourceGroup.Location,
-				Name:              pulumi.String(input.Name),
-				ResourceGroupName: resourceGroup.Name,
-				Tags:              tags,
-			})
-		if err != nil {
-			return nil, err
-		}
-
-		appSecGroupIDs[input.Name] = appSecGroup.ID()
-	}
-
-	return appSecGroupIDs, nil
-}
-
 func createNetworkSecurityRules(
 	ctx *pulumi.Context,
 	cfg *config.Config,
-	appSecGroupIDs map[string]pulumi.IDOutput) (map[string]network.NetworkSecurityGroupSecurityRuleArgs, error) {
+	appSecGroups map[string]*network.ApplicationSecurityGroup) (map[string]network.NetworkSecurityGroupSecurityRuleArgs, error) {
 
 	netSecRulesInput := []*NetworkSecurityRuleInput{}
 	if err := cfg.TryObject("networkSecurityRules", &netSecRulesInput); err != nil {
@@ -116,13 +82,13 @@ func createNetworkSecurityRules(
 	for _, input := range netSecRulesInput {
 		destinationAppSecGroups := pulumi.StringArray{}
 		for _, key := range input.DestinationAppSecurityGroups {
-			id, exists := appSecGroupIDs[key]
+			appSecGroup, exists := appSecGroups[key]
 			if !exists {
 				return nil, pulumierr.MissingConfigErr{key, "application security group"}
 			}
 			destinationAppSecGroups = append(
 				destinationAppSecGroups,
-				id)
+				appSecGroup.ID())
 		}
 
 		destinationPortRanges := pulumi.StringArray{}
@@ -206,10 +172,6 @@ func createSubnets(
 	}
 
 	return subnets, nil
-}
-
-type ApplicationSecurityGroupInput struct {
-	Name string
 }
 
 type NetworkSecurityGroupInput struct {
