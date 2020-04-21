@@ -3,14 +3,23 @@
 This project is a Pulumi program that knows how to provision the following Azure resources:
 
 * A new Azure resource group
+* Two
+[availability sets](https://docs.microsoft.com/en-us/azure/virtual-machines/windows/tutorial-availability-sets)
+; `frontend` or `backend`
+* Two
+[application security groups](https://docs.microsoft.com/en-us/azure/virtual-network/application-security-groups)
+; `web-servers` or `admin-servers`
 * A new virtual network with 3 subnets
-* 3 `frontend` and 3 `backend` Ubuntu VMs deployed to different subnets
-  * All VMs belong to the same availability set
-  * Each VM has a 30GB OS disk attached to it
+* 3 `frontend` and 3 `backend` Ubuntu VMs with the following properties:
+  * Deployed to private subnets
+  * Grouped by availability sets
+  * Assigned to application security groups
+  * 30GB OS disk
 * A network security group with rules to allow HTTP/HTTPS and SSH access to the
 VMs
 * Two application security groups that are used as the `Destination` of  the
 network security rules
+* A bastion host that allows external access to the private VMs
 
 ## Prerequisites
 
