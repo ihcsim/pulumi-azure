@@ -10,7 +10,7 @@ This project is a Pulumi program that knows how to provision the following Azure
 * Two
 [application security groups](https://docs.microsoft.com/en-us/azure/virtual-network/application-security-groups)
 ; `web-servers` or `admin-servers`
-* 3 `frontend` and 3 `backend` Ubuntu VMs with the following properties:
+* 3 `web` and 3 `backend` Ubuntu VMs with the following properties:
   * Deployed to private subnets
   * Grouped by availability sets
   * Assigned to application security groups
@@ -94,3 +94,7 @@ Enter the username and local path to your SSH private key:
 Your web browser will establish a live secured session to the VM:
 
 ![Connect via Bastion live](img/azure-bastion-connect-02.png)
+
+Confirm that `apache2` is installed and running on all the `web` VMs:
+
+![Apache2 running](img/azure-web-apache2.png)
