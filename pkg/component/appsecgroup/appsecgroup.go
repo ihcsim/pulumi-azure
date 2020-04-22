@@ -36,7 +36,3 @@ func Up(
 
 	return appSecGroups, nil
 }
-
-type ApplicationSecurityGroupInput struct {
-	Name string
-}

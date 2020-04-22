@@ -72,9 +72,3 @@ func Up(
 
 	return bastionHosts, nil
 }
-
-type BastionHostInput struct {
-	Name           string
-	PublicIP       string
-	VirtualNetwork string
-}

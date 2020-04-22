@@ -18,8 +18,3 @@ func Up(ctx *pulumi.Context, cfg *config.Config, tags pulumi.StringMap) (*core.R
 			Tags:     tags,
 		})
 }
-
-type ResourceGroupInput struct {
-	Location string
-	Name     string
-}
