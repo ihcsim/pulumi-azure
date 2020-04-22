@@ -29,6 +29,18 @@ config:
     primary: true
     privateIPAddressAllocation: Dynamic
     privateIPAddressVersion: IPv4
+  pulumi-azure:loadBalancers:
+  - backendPort: 80
+    frontendPort: 80
+    name: edge
+    publicIP: lb-public-ipv4
+    probePort: 80
+    probeProtocol: Http
+    probeRequestPath: /
+    protocol: Tcp
+    sku: Standard
+    subnet: subnet-00
+    virtualNetwork: isim-dev
   pulumi-azure:networkInterfaces:
   - ipConfiguration: ipv4-private-dynamic
     name: primary
@@ -138,6 +150,10 @@ config:
   - AllocationMethod: Static
     IPVersion: IPv4
     Name: orca-00-public-ipv4
+    SKU: Standard
+  - AllocationMethod: Static
+    IPVersion: IPv4
+    Name: lb-public-ipv4
     SKU: Standard
   pulumi-azure:resourceGroup:
     location: WestUS

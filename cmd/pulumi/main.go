@@ -4,6 +4,7 @@ import (
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/appsecgroup"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/bastion"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/compute"
+	"github.com/ihcsim/pulumi-azure/v2/pkg/component/loadbalancer"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/network"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/publicip"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/component/resourcegroup"
@@ -47,6 +48,10 @@ func main() {
 		}
 
 		if _, err := bastion.Up(ctx, cfg, publicIPs, resourceGroup, virtualNetworks, commonTags); err != nil {
+			return err
+		}
+
+		if _, err := loadbalancer.Up(ctx, cfg, publicIPs, resourceGroup, virtualNetworks, commonTags); err != nil {
 			return err
 		}
 
