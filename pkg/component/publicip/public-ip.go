@@ -7,7 +7,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/go/pulumi/config"
 )
 
-func Up(
+func Reconcile(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	resourceGroup *core.ResourceGroup,

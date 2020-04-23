@@ -8,24 +8,24 @@ import (
 	"github.com/pulumi/pulumi/sdk/go/pulumi/config"
 )
 
-func Up(
+func Reconcile(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	appSecGroups map[string]*network.ApplicationSecurityGroup,
 	resourceGroup *core.ResourceGroup,
 	tags pulumi.StringMap) (map[string]*network.VirtualNetwork, error) {
 
-	networkSecurityRules, err := createNetworkSecurityRules(ctx, cfg, appSecGroups)
+	networkSecurityRules, err := networkSecurityRules(ctx, cfg, appSecGroups)
 	if err != nil {
 		return nil, err
 	}
 
-	networkSecurityGroups, err := createNetworkSecurityGroups(ctx, cfg, networkSecurityRules, resourceGroup, tags)
+	networkSecurityGroups, err := networkSecurityGroups(ctx, cfg, networkSecurityRules, resourceGroup, tags)
 	if err != nil {
 		return nil, err
 	}
 
-	allSubnets, err := createSubnets(ctx, cfg, networkSecurityGroups)
+	allSubnets, err := subnets(ctx, cfg, networkSecurityGroups)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func Up(
 	return networks, nil
 }
 
-func createNetworkSecurityRules(
+func networkSecurityRules(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	appSecGroups map[string]*network.ApplicationSecurityGroup) (map[string]network.NetworkSecurityGroupSecurityRuleArgs, error) {
@@ -116,7 +116,7 @@ func createNetworkSecurityRules(
 	return networkSecurityRules, nil
 }
 
-func createNetworkSecurityGroups(
+func networkSecurityGroups(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	networkSecurityRules map[string]network.NetworkSecurityGroupSecurityRuleArgs,
@@ -152,7 +152,7 @@ func createNetworkSecurityGroups(
 	return networkSecurityGroups, nil
 }
 
-func createSubnets(
+func subnets(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	networkSecurityGroups map[string]pulumi.IDOutput) (map[string]network.VirtualNetworkSubnetArgs, error) {

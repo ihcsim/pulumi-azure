@@ -13,7 +13,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/go/pulumi/config"
 )
 
-func Up(
+func Reconcile(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	appSecGroups map[string]*network.ApplicationSecurityGroup,
@@ -21,27 +21,27 @@ func Up(
 	virtualNetworks map[string]*network.VirtualNetwork,
 	tags pulumi.StringMap) ([]*compute.VirtualMachine, error) {
 
-	availabilitySets, err := createAvailabilitySets(ctx, cfg, resourceGroup, tags)
+	availabilitySets, err := availabilitySets(ctx, cfg, resourceGroup, tags)
 	if err != nil {
 		return nil, err
 	}
 
-	osProfiles, err := createOSProfiles(ctx, cfg)
+	osProfiles, err := osProfiles(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	osProfilesLinux, err := createOSProfilesLinux(ctx, cfg)
+	osProfilesLinux, err := osProfilesLinux(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	storageImageReferences, err := createStorageImageReferences(ctx, cfg)
+	storageImageReferences, err := storageImageReferences(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	storageOSDisks, err := createStorageOSDisks(ctx, cfg)
+	storageOSDisks, err := storageOSDisks(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func Up(
 				return "", nil
 			})
 
-			netInf, err := createPrimaryNetworkInterface(ctx, cfg, appSecGroup, resourceGroup, instanceName, subnetID, tags)
+			netInf, err := primaryNetworkInterface(ctx, cfg, appSecGroup, resourceGroup, instanceName, subnetID, tags)
 			if err != nil {
 				return nil, err
 			}
@@ -148,7 +148,7 @@ func Up(
 	return virtualMachines, nil
 }
 
-func createAvailabilitySets(
+func availabilitySets(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	resourceGroup *core.ResourceGroup,
@@ -181,7 +181,7 @@ func createAvailabilitySets(
 
 }
 
-func createOSProfiles(
+func osProfiles(
 	ctx *pulumi.Context,
 	cfg *config.Config) (map[string]compute.VirtualMachineOsProfileArgs, error) {
 
@@ -202,7 +202,7 @@ func createOSProfiles(
 	return osProfiles, nil
 }
 
-func createOSProfilesLinux(
+func osProfilesLinux(
 	ctx *pulumi.Context,
 	cfg *config.Config) (map[string]compute.VirtualMachineOsProfileLinuxConfigArgs, error) {
 
@@ -227,7 +227,7 @@ func createOSProfilesLinux(
 	return osProfilesLinux, nil
 }
 
-func createStorageImageReferences(
+func storageImageReferences(
 	ctx *pulumi.Context,
 	cfg *config.Config) (map[string]compute.VirtualMachineStorageImageReferenceArgs, error) {
 
@@ -249,7 +249,7 @@ func createStorageImageReferences(
 	return storageImageReferences, nil
 }
 
-func createStorageOSDisks(
+func storageOSDisks(
 	ctx *pulumi.Context,
 	cfg *config.Config) (map[string]compute.VirtualMachineStorageOsDiskArgs, error) {
 
@@ -270,7 +270,7 @@ func createStorageOSDisks(
 	return storageOSDisks, nil
 }
 
-func createPrimaryNetworkInterface(
+func primaryNetworkInterface(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	appSecGroup *network.ApplicationSecurityGroup,

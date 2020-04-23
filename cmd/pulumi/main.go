@@ -23,35 +23,35 @@ func main() {
 			cfg = config.New(ctx, "pulumi-azure")
 		)
 
-		resourceGroup, err := resourcegroup.Up(ctx, cfg, commonTags)
+		resourceGroup, err := resourcegroup.Reconcile(ctx, cfg, commonTags)
 		if err != nil {
 			return err
 		}
 
-		appSecGroups, err := appsecgroup.Up(ctx, cfg, resourceGroup, commonTags)
+		appSecGroups, err := appsecgroup.Reconcile(ctx, cfg, resourceGroup, commonTags)
 		if err != nil {
 			return err
 		}
 
-		virtualNetworks, err := network.Up(ctx, cfg, appSecGroups, resourceGroup, commonTags)
+		virtualNetworks, err := network.Reconcile(ctx, cfg, appSecGroups, resourceGroup, commonTags)
 		if err != nil {
 			return err
 		}
 
-		if _, err := compute.Up(ctx, cfg, appSecGroups, resourceGroup, virtualNetworks, commonTags); err != nil {
+		if _, err := compute.Reconcile(ctx, cfg, appSecGroups, resourceGroup, virtualNetworks, commonTags); err != nil {
 			return err
 		}
 
-		publicIPs, err := publicip.Up(ctx, cfg, resourceGroup, commonTags)
+		publicIPs, err := publicip.Reconcile(ctx, cfg, resourceGroup, commonTags)
 		if err != nil {
 			return err
 		}
 
-		if _, err := bastion.Up(ctx, cfg, publicIPs, resourceGroup, virtualNetworks, commonTags); err != nil {
+		if _, err := bastion.Reconcile(ctx, cfg, publicIPs, resourceGroup, virtualNetworks, commonTags); err != nil {
 			return err
 		}
 
-		if _, err := loadbalancer.Up(ctx, cfg, publicIPs, resourceGroup, virtualNetworks, commonTags); err != nil {
+		if _, err := loadbalancer.Reconcile(ctx, cfg, publicIPs, resourceGroup, virtualNetworks, commonTags); err != nil {
 			return err
 		}
 

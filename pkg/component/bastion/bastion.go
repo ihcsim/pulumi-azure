@@ -11,7 +11,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/go/pulumi/config"
 )
 
-func Up(
+func Reconcile(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	publicIPs map[string]*network.PublicIp,
@@ -31,19 +31,18 @@ func Up(
 			return nil, pulumierr.MissingConfigErr{input.VirtualNetwork, "virtual network"}
 		}
 
-		targetSubnet := "AzureBastionSubnet"
 		subnetID := virtualNetwork.Subnets.ApplyString(func(subnets []network.VirtualNetworkSubnet) (string, error) {
 			for _, subnet := range subnets {
-				if strings.Contains(subnet.Name, targetSubnet) {
+				if strings.Contains(subnet.Name, input.Subnet) {
 					if subnet.Id == nil {
-						return "", pulumierr.MissingConfigErr{targetSubnet, "subnet ID"}
+						return "", pulumierr.MissingConfigErr{input.Subnet, "subnet ID"}
 					}
 
 					return *subnet.Id, nil
 				}
 			}
 
-			return "", pulumierr.MissingConfigErr{targetSubnet, "subnet"}
+			return "", pulumierr.MissingConfigErr{input.Subnet, "subnet"}
 		})
 
 		publicIP, exists := publicIPs[input.PublicIP]

@@ -6,7 +6,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/go/pulumi/config"
 )
 
-func Up(ctx *pulumi.Context, cfg *config.Config, tags pulumi.StringMap) (*core.ResourceGroup, error) {
+func Reconcile(ctx *pulumi.Context, cfg *config.Config, tags pulumi.StringMap) (*core.ResourceGroup, error) {
 	var input ResourceGroupInput
 	if err := cfg.TryObject("resourceGroup", &input); err != nil {
 		return nil, err

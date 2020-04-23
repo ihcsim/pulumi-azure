@@ -23,6 +23,7 @@ config:
   pulumi-azure:bastionHosts:
   - name: orca-00
     publicIP: orca-00-public-ipv4
+    subnet: AzureBastionSubnet
     virtualNetwork: isim-dev
   pulumi-azure:ipConfiguration:
   - name: ipv4-private-dynamic

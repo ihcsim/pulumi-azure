@@ -13,7 +13,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/go/pulumi/config"
 )
 
-func Up(
+func Reconcile(
 	ctx *pulumi.Context,
 	cfg *config.Config,
 	publicIPs map[string]*network.PublicIp,
@@ -28,15 +28,9 @@ func Up(
 
 	loadBalancers := map[string]*lb.LoadBalancer{}
 	for _, input := range loadBalancerInput {
-		publicIP, exists := publicIPs[input.PublicIP]
-		if !exists {
-			return nil, pulumierr.MissingConfigErr{input.PublicIP, "public IP"}
-		}
-
-		frontendIPConfigurationName := fmt.Sprintf("%s-frontend-config", input.Name)
-		frontendIPConfiguration := &lb.LoadBalancerFrontendIpConfigurationArgs{
-			Name:              pulumi.String(frontendIPConfigurationName),
-			PublicIpAddressId: publicIP.ID(),
+		frontendIPConfiguration, err := frontendIPConfiguration(input, publicIPs)
+		if err != nil {
+			return nil, err
 		}
 		frontendIPConfigurations := lb.LoadBalancerFrontendIpConfigurationArray{frontendIPConfiguration}
 
@@ -52,15 +46,9 @@ func Up(
 		if err != nil {
 			return nil, err
 		}
-
 		loadBalancers[input.Name] = loadBalancer
 
-		backendAddressPoolName := fmt.Sprintf("%s-backend-pool", input.Name)
-		backendAddressPool, err := lb.NewBackendAddressPool(ctx, backendAddressPoolName, &lb.BackendAddressPoolArgs{
-			LoadbalancerId:    loadBalancer.ID(),
-			Name:              pulumi.String(backendAddressPoolName),
-			ResourceGroupName: resourceGroup.Name,
-		})
+		backendAddressPool, err := backendAddressPool(ctx, input, loadBalancer, resourceGroup)
 		if err != nil {
 			return nil, err
 		}
@@ -114,34 +102,82 @@ func Up(
 			return nil, err
 		}
 
-		probeName := fmt.Sprintf("%s-probe-web", input.Name)
-		probe, err := lb.NewProbe(ctx, probeName, &lb.ProbeArgs{
-			LoadbalancerId:    loadBalancer.ID(),
-			Name:              pulumi.String(probeName),
-			Port:              pulumi.Int(input.ProbePort),
-			Protocol:          pulumi.String(input.ProbeProtocol),
-			RequestPath:       pulumi.String(input.ProbeRequestPath),
-			ResourceGroupName: resourceGroup.Name,
-		})
+		probe, err := probe(ctx, input, loadBalancer, resourceGroup)
 		if err != nil {
 			return nil, err
 		}
 
-		webRuleName := fmt.Sprintf("%s-rule-web", input.Name)
-		if _, err := lb.NewRule(ctx, webRuleName, &lb.RuleArgs{
-			BackendAddressPoolId:        backendAddressPool.ID(),
-			BackendPort:                 pulumi.Int(input.BackendPort),
-			FrontendIpConfigurationName: frontendIPConfiguration.Name,
-			FrontendPort:                pulumi.Int(input.FrontendPort),
-			LoadbalancerId:              loadBalancer.ID(),
-			Name:                        pulumi.String(webRuleName),
-			ProbeId:                     probe.ID(),
-			Protocol:                    pulumi.String(input.Protocol),
-			ResourceGroupName:           resourceGroup.Name,
-		}); err != nil {
+		if _, err := rule(ctx, input, backendAddressPool, frontendIPConfiguration, loadBalancer, probe, resourceGroup); err != nil {
 			return nil, err
 		}
 	}
 
 	return loadBalancers, nil
+}
+
+func frontendIPConfiguration(input *LoadBalancerInput, publicIPs map[string]*network.PublicIp) (*lb.LoadBalancerFrontendIpConfigurationArgs, error) {
+	publicIP, exists := publicIPs[input.PublicIP]
+	if !exists {
+		return nil, pulumierr.MissingConfigErr{input.PublicIP, "public IP"}
+	}
+
+	frontendIPConfigurationName := fmt.Sprintf("%s-frontend-config", input.Name)
+	return &lb.LoadBalancerFrontendIpConfigurationArgs{
+		Name:              pulumi.String(frontendIPConfigurationName),
+		PublicIpAddressId: publicIP.ID(),
+	}, nil
+}
+
+func backendAddressPool(
+	ctx *pulumi.Context,
+	input *LoadBalancerInput,
+	loadBalancer *lb.LoadBalancer,
+	resourceGroup *core.ResourceGroup) (*lb.BackendAddressPool, error) {
+
+	backendAddressPoolName := fmt.Sprintf("%s-backend-pool", input.Name)
+	return lb.NewBackendAddressPool(ctx, backendAddressPoolName, &lb.BackendAddressPoolArgs{
+		LoadbalancerId:    loadBalancer.ID(),
+		Name:              pulumi.String(backendAddressPoolName),
+		ResourceGroupName: resourceGroup.Name,
+	})
+}
+
+func probe(
+	ctx *pulumi.Context,
+	input *LoadBalancerInput,
+	loadBalancer *lb.LoadBalancer,
+	resourceGroup *core.ResourceGroup) (*lb.Probe, error) {
+	probeName := fmt.Sprintf("%s-probe-web", input.Name)
+
+	return lb.NewProbe(ctx, probeName, &lb.ProbeArgs{
+		LoadbalancerId:    loadBalancer.ID(),
+		Name:              pulumi.String(probeName),
+		Port:              pulumi.Int(input.ProbePort),
+		Protocol:          pulumi.String(input.ProbeProtocol),
+		RequestPath:       pulumi.String(input.ProbeRequestPath),
+		ResourceGroupName: resourceGroup.Name,
+	})
+}
+
+func rule(
+	ctx *pulumi.Context,
+	input *LoadBalancerInput,
+	backendAddressPool *lb.BackendAddressPool,
+	frontendIPConfiguration *lb.LoadBalancerFrontendIpConfigurationArgs,
+	loadBalancer *lb.LoadBalancer,
+	probe *lb.Probe,
+	resourceGroup *core.ResourceGroup) (*lb.Rule, error) {
+
+	webRuleName := fmt.Sprintf("%s-rule-web", input.Name)
+	return lb.NewRule(ctx, webRuleName, &lb.RuleArgs{
+		BackendAddressPoolId:        backendAddressPool.ID(),
+		BackendPort:                 pulumi.Int(input.BackendPort),
+		FrontendIpConfigurationName: frontendIPConfiguration.Name,
+		FrontendPort:                pulumi.Int(input.FrontendPort),
+		LoadbalancerId:              loadBalancer.ID(),
+		Name:                        pulumi.String(webRuleName),
+		ProbeId:                     probe.ID(),
+		Protocol:                    pulumi.String(input.Protocol),
+		ResourceGroupName:           resourceGroup.Name,
+	})
 }
