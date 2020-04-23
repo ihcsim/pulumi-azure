@@ -98,3 +98,8 @@ Your web browser will establish a live secured session to the VM:
 Confirm that `apache2` is installed and running on all the `web` VMs:
 
 ![Apache2 running](img/azure-web-apache2.png)
+
+Locate the public IP address of the load balancer. Confirm that the `apache2`
+home page is accessible at port 80:
+
+![Apache2 home](img/azure-web-apache2-home.png)

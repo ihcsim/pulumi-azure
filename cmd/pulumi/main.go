@@ -38,7 +38,8 @@ func main() {
 			return err
 		}
 
-		if _, err := compute.Reconcile(ctx, cfg, appSecGroups, resourceGroup, virtualNetworks, commonTags); err != nil {
+		virtualMachines, err := compute.Reconcile(ctx, cfg, appSecGroups, resourceGroup, virtualNetworks, commonTags)
+		if err != nil {
 			return err
 		}
 
@@ -51,7 +52,7 @@ func main() {
 			return err
 		}
 
-		if _, err := loadbalancer.Reconcile(ctx, cfg, publicIPs, resourceGroup, virtualNetworks, commonTags); err != nil {
+		if _, err := loadbalancer.Reconcile(ctx, cfg, publicIPs, resourceGroup, virtualMachines, commonTags); err != nil {
 			return err
 		}
 

@@ -2,6 +2,7 @@ package loadbalancer
 
 type LoadBalancerInput struct {
 	BackendPort      int
+	BackendHosts     []string
 	FrontendPort     int
 	Name             string
 	ProbePort        int

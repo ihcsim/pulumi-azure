@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	azurenetwork "github.com/Azure/azure-sdk-for-go/profiles/latest/network/mgmt/network"
 	pulumierr "github.com/ihcsim/pulumi-azure/v2/pkg/error"
+	"github.com/pulumi/pulumi-azure/sdk/go/azure/compute"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/core"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/lb"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/network"
@@ -18,7 +18,7 @@ func Reconcile(
 	cfg *config.Config,
 	publicIPs map[string]*network.PublicIp,
 	resourceGroup *core.ResourceGroup,
-	virtualNetworks map[string]*network.VirtualNetwork,
+	virtualMachines map[string]*compute.VirtualMachine,
 	tags pulumi.StringMap) (map[string]*lb.LoadBalancer, error) {
 
 	loadBalancerInput := []*LoadBalancerInput{}
@@ -53,53 +53,23 @@ func Reconcile(
 			return nil, err
 		}
 
-		virtualNetwork, exists := virtualNetworks[input.VirtualNetwork]
-		if !exists {
-			return nil, pulumierr.MissingConfigErr{input.VirtualNetwork, "virtual network"}
-		}
-		subnetID := virtualNetwork.Subnets.ApplyString(func(subnets []network.VirtualNetworkSubnet) (string, error) {
-			for _, subnet := range subnets {
-				if strings.Contains(subnet.Name, input.Subnet) {
-					if subnet.Id == nil {
-						return "", pulumierr.MissingConfigErr{input.Subnet, "subnet ID"}
-					}
+		for vmName, virtualMachine := range virtualMachines {
+			for _, backendHost := range input.BackendHosts {
+				if !strings.HasPrefix(vmName, backendHost) {
+					continue
+				}
 
-					return *subnet.Id, nil
+				associationName := fmt.Sprintf("%s-%s-association", input.Name, vmName)
+				if _, err := network.NewNetworkInterfaceBackendAddressPoolAssociation(ctx, associationName,
+					&network.NetworkInterfaceBackendAddressPoolAssociationArgs{
+						BackendAddressPoolId: backendAddressPool.ID(),
+						IpConfigurationName:  pulumi.Sprintf("%s-primary-ipconfig", vmName),
+						NetworkInterfaceId:   pulumi.StringOutput(virtualMachine.PrimaryNetworkInterfaceId),
+					}); err != nil {
+					return nil, err
 				}
 			}
 
-			return "", pulumierr.MissingConfigErr{input.Subnet, "subnet"}
-		})
-
-		networkInterfaceName := fmt.Sprintf("%s-netinf", input.Name)
-		networkInterface, err := network.NewNetworkInterface(ctx, networkInterfaceName,
-			&network.NetworkInterfaceArgs{
-				IpConfigurations: network.NetworkInterfaceIpConfigurationArray{
-					network.NetworkInterfaceIpConfigurationArgs{
-						Name:                       pulumi.String(networkInterfaceName),
-						Primary:                    pulumi.Bool(true),
-						PrivateIpAddressAllocation: pulumi.String(azurenetwork.Dynamic),
-						PrivateIpAddressVersion:    pulumi.String(azurenetwork.IPv4),
-						SubnetId:                   subnetID,
-					},
-				},
-				Location:          resourceGroup.Location,
-				Name:              pulumi.String(networkInterfaceName),
-				ResourceGroupName: resourceGroup.Name,
-				Tags:              tags,
-			})
-		if err != nil {
-			return nil, err
-		}
-
-		associationName := fmt.Sprintf("%s-backend-network-interface", input.Name)
-		if _, err := network.NewNetworkInterfaceBackendAddressPoolAssociation(ctx, associationName,
-			&network.NetworkInterfaceBackendAddressPoolAssociationArgs{
-				BackendAddressPoolId: backendAddressPool.ID(),
-				IpConfigurationName:  networkInterface.IpConfigurations.Index(pulumi.Int(0)).Name(),
-				NetworkInterfaceId:   networkInterface.ID(),
-			}); err != nil {
-			return nil, err
 		}
 
 		probe, err := probe(ctx, input, loadBalancer, resourceGroup)

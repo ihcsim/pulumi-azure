@@ -19,7 +19,7 @@ func Reconcile(
 	appSecGroups map[string]*network.ApplicationSecurityGroup,
 	resourceGroup *core.ResourceGroup,
 	virtualNetworks map[string]*network.VirtualNetwork,
-	tags pulumi.StringMap) ([]*compute.VirtualMachine, error) {
+	tags pulumi.StringMap) (map[string]*compute.VirtualMachine, error) {
 
 	availabilitySets, err := availabilitySets(ctx, cfg, resourceGroup, tags)
 	if err != nil {
@@ -51,7 +51,7 @@ func Reconcile(
 		return nil, err
 	}
 
-	virtualMachines := []*compute.VirtualMachine{}
+	virtualMachines := map[string]*compute.VirtualMachine{}
 	for _, input := range virtualMachineInput {
 		virtualNetwork, exists := virtualNetworks[input.VirtualNetwork]
 		if !exists {
@@ -141,7 +141,7 @@ func Reconcile(
 				return nil, err
 			}
 
-			virtualMachines = append(virtualMachines, virtualMachine)
+			virtualMachines[string(instanceName)] = virtualMachine
 		}
 	}
 

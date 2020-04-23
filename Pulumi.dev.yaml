@@ -32,6 +32,8 @@ config:
     privateIPAddressVersion: IPv4
   pulumi-azure:loadBalancers:
   - backendPort: 80
+    backendHosts:
+    - web
     frontendPort: 80
     name: edge
     publicIP: lb-public-ipv4
@@ -48,7 +50,7 @@ config:
   pulumi-azure:networkSecurityGroups:
   - name: default
     securityRules:
-    - allow-web-lb
+    - allow-web-all
     - allow-ssh-all
   - name: bastion
     securityRules:
@@ -65,10 +67,10 @@ config:
     - "80"
     - "443"
     direction: Inbound
-    name: allow-web-lb
+    name: allow-web-all
     priority: 100
     protocol: Tcp
-    sourceAddressPrefix: AzureLoadBalancer
+    sourceAddressPrefix: '*'
     sourcePortRange: '*'
   - access: Allow
     description: allow SSH to admin-servers from virtual network
@@ -149,13 +151,13 @@ config:
       secure: AAABABGF6PEVor1mKHBXWEPQy6GnsgtQ615WYW47/Sgo5Yw8gJoPYZa86A4xaKO8yZZXgZEEWRtb2+OK9q8O
   pulumi-azure:publicIP:
   - AllocationMethod: Static
-    IPVersion: IPv4
-    Name: orca-00-public-ipv4
-    SKU: Standard
+    ipVersion: IPv4
+    name: orca-00-public-ipv4
+    sku: Standard
   - AllocationMethod: Static
-    IPVersion: IPv4
-    Name: lb-public-ipv4
-    SKU: Standard
+    ipVersion: IPv4
+    name: lb-public-ipv4
+    sku: Standard
   pulumi-azure:resourceGroup:
     location: WestUS
     name: isim-dev
