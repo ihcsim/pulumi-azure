@@ -76,7 +76,7 @@ pulumi up
 > The workaround is to comment out everything after line 40 in
 > `cmd/pulumi.main.go` during the first run, to provision all the network
 > the network resources first. Then re-run `pulumi up` again with the compute
-> provisining code uncommented.
+> provisioning code uncommented.
 
 ## What It Looks Like
 
