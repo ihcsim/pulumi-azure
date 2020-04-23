@@ -19,6 +19,8 @@ This project is a Pulumi program that knows how to provision the following Azure
 VMs
 * A bastion host that allows external access to the private VMs
 
+![Topology](img/topology.png)
+
 ## Prerequisites
 
 The following is a list of required software:
