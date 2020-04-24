@@ -1,4 +1,4 @@
-package appsecgroup
+package publicip
 
 import (
 	"sync"
@@ -26,32 +26,32 @@ func TestReconcile(t *testing.T) {
 			return err
 		}
 
-		appSecGroups, err := Reconcile(ctx, cfg, resourceGroup, tags)
+		publicIPs, err := Reconcile(ctx, cfg, resourceGroup, tags)
 		if err != nil {
 			return err
 		}
 
-		appSecGroup, exists := appSecGroups[test.AppSecGroupName]
+		publicIP, exists := publicIPs[test.PublicIPName]
 		if !exists {
-			t.Fatalf("missing application security group: %s", test.AppSecGroupName)
+			t.Fatalf("missing public IP: %s", test.PublicIPName)
 		}
 
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		pulumi.All(appSecGroup.Location, appSecGroup.Name, appSecGroup.ResourceGroupName).ApplyT(func(actuals []interface{}) error {
+		pulumi.All(publicIP.AllocationMethod, publicIP.IpVersion, publicIP.Name, publicIP.Sku).ApplyT(func(actuals []interface{}) error {
 			defer wg.Done()
 
-			if actual := actuals[0].(string); actual != test.Location {
-				t.Errorf("locations mismatch. expected: %s, actual: %s", test.Location, actual)
+			if actual := actuals[0].(string); actual != test.PublicIPAllocationMethod {
+				t.Errorf("allocation method mismatch. expected: %s, actual: %s", test.PublicIPAllocationMethod, actual)
 			}
 
-			if actual := actuals[1].(string); actual != test.AppSecGroupName {
-				t.Errorf("names mismatch. expected: %s, actual: %s", test.AppSecGroupName, actual)
+			if actual := actuals[1].(string); actual != test.PublicIPVersion {
+				t.Errorf("IP version mismatch. expected: %s, actual: %s", test.PublicIPVersion, actual)
 			}
 
-			if actual := actuals[2].(string); actual != test.ResourceGroupName {
-				t.Errorf("resource groups mismatch. expected: %s, actual: %s", test.ResourceGroupName, actual)
+			if actual := actuals[2].(string); actual != test.PublicIPSKU {
+				t.Errorf("public IP SKU mismatch. expected: %s, actual: %s", test.PublicIPSKU, actual)
 			}
 
 			wg.Wait()
