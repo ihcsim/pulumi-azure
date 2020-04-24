@@ -55,6 +55,12 @@ For more information on these properties, see:
 * [`compute.VirtualMachineOsProfile`](https://godoc.org/github.com/pulumi/pulumi-azure/sdk/go/azure/compute#VirtualMachineOsProfile)
 * [`compute.VirtualMachineOsProfileLinuxConfig`](https://godoc.org/github.com/pulumi/pulumi-azure/sdk/go/azure/compute#VirtualMachineOsProfileLinuxConfig)
 
+To run the unit tests:
+
+```
+go test ./...
+```
+
 To get a preview of what this Pulumi program does:
 
 ```
