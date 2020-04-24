@@ -23,6 +23,10 @@ var (
 	VirtualNetworkName       = "test-virtual-network"
 
 	Config = map[string]string{
+		fmt.Sprintf("%s:appSecurityGroups", ConfigNamespace): `
+[{
+	"name": "` + AppSecGroupName + `"
+}]`,
 		fmt.Sprintf("%s:networkSecurityRules", ConfigNamespace): `
 [{
   "access": "Allow",
