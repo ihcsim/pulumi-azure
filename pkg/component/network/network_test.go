@@ -1,51 +1,42 @@
 package network
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 
 	"github.com/ihcsim/pulumi-azure/v2/pkg/mock"
+	"github.com/ihcsim/pulumi-azure/v2/pkg/test"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/core"
 	"github.com/pulumi/pulumi-azure/sdk/go/azure/network"
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
 	"github.com/pulumi/pulumi/sdk/go/pulumi/config"
 )
 
-var (
-	testCfgNamespace = "testConfig"
-	testLocation     = "uswest"
-	testProject      = "testProject"
-	testStack        = "testStack"
-)
-
 func TestReconcile(t *testing.T) {
 	if err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		var (
-			cfg  = config.New(ctx, testCfgNamespace)
-			tags = pulumi.StringMap{
-				"key": pulumi.String("value"),
-			}
+			cfg  = config.New(ctx, test.ConfigNamespace)
+			tags = test.Tags
 		)
 
-		resourceGroup, err := core.NewResourceGroup(ctx, testResourceGroupName, &core.ResourceGroupArgs{
-			Location: pulumi.String(testLocation),
-			Name:     pulumi.String(testResourceGroupName),
+		resourceGroup, err := core.NewResourceGroup(ctx, test.ResourceGroupName, &core.ResourceGroupArgs{
+			Location: pulumi.String(test.Location),
+			Name:     pulumi.String(test.ResourceGroupName),
 		})
 		if err != nil {
 			return err
 		}
 
-		appSecGroup, err := network.NewApplicationSecurityGroup(ctx, testAppSecGroupName, &network.ApplicationSecurityGroupArgs{
-			Location:          pulumi.String("uswest"),
-			Name:              pulumi.String(testAppSecGroupName),
+		appSecGroup, err := network.NewApplicationSecurityGroup(ctx, test.AppSecGroupName, &network.ApplicationSecurityGroupArgs{
+			Location:          resourceGroup.Location,
+			Name:              pulumi.String(test.AppSecGroupName),
 			ResourceGroupName: resourceGroup.Name,
 		})
 		if err != nil {
 			return err
 		}
 		appSecGroups := map[string]*network.ApplicationSecurityGroup{
-			testAppSecGroupName: appSecGroup,
+			test.AppSecGroupName: appSecGroup,
 		}
 
 		virtualNetworks, err := Reconcile(ctx, cfg, appSecGroups, resourceGroup, tags)
@@ -53,9 +44,9 @@ func TestReconcile(t *testing.T) {
 			return err
 		}
 
-		virtualNetwork, exists := virtualNetworks[testVirtualNetworkName]
+		virtualNetwork, exists := virtualNetworks[test.VirtualNetworkName]
 		if !exists {
-			t.Errorf("missing virtual network: %s", testVirtualNetworkName)
+			t.Errorf("missing virtual network: %s", test.VirtualNetworkName)
 		}
 
 		var wg sync.WaitGroup
@@ -63,12 +54,12 @@ func TestReconcile(t *testing.T) {
 		pulumi.All(virtualNetwork.Location, virtualNetwork.ResourceGroupName).ApplyT(func(actuals []interface{}) error {
 			defer wg.Done()
 
-			if actual := actuals[0].(string); actual != testLocation {
-				t.Errorf("locations mismatch. expected: %s, actual: %s", testLocation, actual)
+			if actual := actuals[0].(string); actual != test.Location {
+				t.Errorf("locations mismatch. expected: %s, actual: %s", test.Location, actual)
 			}
 
-			if actual := actuals[1].(string); actual != testResourceGroupName {
-				t.Errorf("resource group names mismatch. expected: %s, actual: %s", testResourceGroupName, actual)
+			if actual := actuals[1].(string); actual != test.ResourceGroupName {
+				t.Errorf("resource group names mismatch. expected: %s, actual: %s", test.ResourceGroupName, actual)
 			}
 
 			return nil
@@ -99,12 +90,12 @@ func TestReconcile(t *testing.T) {
 
 			subnet := subnets[0]
 			pulumi.All(subnet.AddressPrefix, subnet.SecurityGroup).ApplyT(func(actuals []interface{}) error {
-				if actual := actuals[0].(*string); *actual != "10.0.0.0/24" {
-					t.Errorf("address prefix mismatch. expected: 10.0.0.0/24, actual: %s", *actual)
+				if actual := actuals[0].(string); actual != "10.0.0.0/24" {
+					t.Errorf("address prefix mismatch. expected: 10.0.0.0/24, actual: %s", actual)
 				}
 
-				if actual := actuals[1].(string); actual != testNetworkSecurityGroupName {
-					t.Errorf("security group name mismatch. expected: %s, actual: %s", testNetworkSecurityGroupName, actual)
+				if actual := actuals[1].(*string); *actual != test.NetworkSecurityGroupName {
+					t.Errorf("security group name mismatch. expected: %s, actual: %s", test.NetworkSecurityGroupName, *actual)
 				}
 
 				return nil
@@ -115,49 +106,7 @@ func TestReconcile(t *testing.T) {
 
 		wg.Wait()
 		return nil
-	}, mock.WithCustomMocks(testProject, testStack, testConfig, mock.Mocks(0))); err != nil {
+	}, mock.WithCustomMocks(test.Project, test.Stack, test.Config, mock.Mocks(0))); err != nil {
 		t.Error(err)
 	}
 }
-
-var (
-	testAppSecGroupName          = "test-appsec-group"
-	testNetworkSecurityRuleName  = "test-network-rule"
-	testNetworkSecurityGroupName = "test-network-group"
-	testSubnetName               = "test-subnet"
-	testResourceGroupName        = "test-resource-group"
-	testVirtualNetworkName       = "test-virtual-network"
-
-	testConfig = map[string]string{
-		fmt.Sprintf("%s:networkSecurityRules", testCfgNamespace): `
-[{
-  "access": "Allow",
-  "description": "test description",
-  "destinationAppSecurityGroups": ["` + testAppSecGroupName + `"],
-  "destinationPortRanges": ["80"],
-  "direction": "Inbound",
-  "name": "` + testNetworkSecurityRuleName + `",
-  "priority": 100,
-  "protocol": "Tcp",
-  "sourceAddressPrefix": "*",
-  "sourcePortRange": "*"
-}]`,
-		fmt.Sprintf("%s:networkSecurityGroups", testCfgNamespace): `
-[{
-	"name": "` + testNetworkSecurityGroupName + `",
-	"securityRules": ["` + testNetworkSecurityRuleName + `"]
-}]`,
-		fmt.Sprintf("%s:subnets", testCfgNamespace): `
-[{
-	"name": "` + testSubnetName + `",
-	"addressPrefix": "10.0.0.0/24",
-	"securityGroup": "` + testNetworkSecurityGroupName + `"
-}]`,
-		fmt.Sprintf("%s:virtualNetworks", testCfgNamespace): `
-[{
-	"name": "` + testVirtualNetworkName + `",
-	"cidr": "10.0.0.0/16",
-	"subnets": ["` + testSubnetName + `"]
-}]`,
-	}
-)
