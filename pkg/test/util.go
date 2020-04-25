@@ -27,10 +27,13 @@ var (
 	VirtualNetworkName       = "test-virtual-network"
 
 	Config = map[string]string{
+		// mock application security group
 		fmt.Sprintf("%s:appSecurityGroups", ConfigNamespace): `
 [{
 	"name": "` + AppSecGroupName + `"
 }]`,
+
+		// mock network security rules
 		fmt.Sprintf("%s:networkSecurityRules", ConfigNamespace): `
 [{
   "access": "Allow",
@@ -44,6 +47,8 @@ var (
   "sourceAddressPrefix": "*",
   "sourcePortRange": "*"
 }]`,
+
+		// mock network security groups
 		fmt.Sprintf("%s:networkSecurityGroups", ConfigNamespace): `
 [{
 	"name": "` + NetworkSecurityGroupName + `",
@@ -66,6 +71,12 @@ var (
 	"addressPrefix": "10.0.0.0/24",
 	"securityGroup": "` + NetworkSecurityGroupName + `"
 }]`,
+
+		fmt.Sprintf("%s:resourceGroup", ConfigNamespace): `
+{
+	"location": "` + Location + `",
+	"name": "` + ResourceGroupName + `"
+}`,
 
 		// mock virtual network
 		fmt.Sprintf("%s:virtualNetworks", ConfigNamespace): `
