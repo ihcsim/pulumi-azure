@@ -58,7 +58,7 @@ For more information on these properties, see:
 To run the unit tests:
 
 ```
-go test ./...
+go test -cover ./...
 ```
 
 To get a preview of what this Pulumi program does:

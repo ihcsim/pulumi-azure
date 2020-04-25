@@ -8,32 +8,83 @@ import (
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
 )
 
-var (
+const (
 	ConfigNamespace = "testConfig"
 	Location        = "uswest"
 	Project         = "testProject"
 	Stack           = "testStack"
-	Tags            = pulumi.StringMap{
+
+	AppSecGroupName                           = "test-appsec-group"
+	AvailabilitySetName                       = "test-availability-set"
+	IPConfigurationName                       = "test-ip-configuration"
+	IPConfigurationPrivateIPAddressAllocation = "Dynamic"
+	IPConfigurationPrivateIPAddressVersion    = "IPv4"
+	NetworkInterfaceName                      = "test-virtual-machine-00-primary"
+	NetworkSecurityRuleName                   = "test-network-rule"
+	NetworkSecurityGroupName                  = "test-network-group"
+	OSProfileAdminPassword                    = "test-password"
+	OSProfileAdminUsername                    = "test-username"
+	OSProfileCustomData                       = "test-custom-data"
+	OSProfileName                             = "test-osprofile"
+	OSProfileLinuxName                        = "test-osprofile-linux"
+	OSProfileLinuxSSHKeyData                  = "test-key-data"
+	OSProfileLinuxSSHKeyPath                  = "test-key-path"
+	PublicIPAllocationMethod                  = "Static"
+	PublicIPName                              = "test-public-ip"
+	PublicIPSKU                               = "Standard"
+	PublicIPVersion                           = "IPv4"
+	StorageImageReferenceName                 = "test-storage-image-ref"
+	StorageImageReferenceOffer                = "test-storage-image-ref-offer"
+	StorageImageReferencePublisher            = "test-storage-image-ref-publisher"
+	StorageImageReferenceSKU                  = "test-storage-image-ref-sku"
+	StorageImageReferenceVersion              = "test-storage-image-ref-version"
+	StorageOSDiskCreateOption                 = "test-storage-os-disk-create-option"
+	StorageOSDiskName                         = "test-storage-os-disk"
+	StorageOSDiskOSType                       = "test=storage-os-disk-os-type"
+	SubnetName                                = "test-subnet"
+	ResourceGroupName                         = "test-resource-group"
+	VirtualMachineCustomData                  = "test-vm-custom-data"
+	VirtualMachineInstanceName                = "test-virtual-machine-00"
+	VirtualMachineName                        = "test-virtual-machine"
+	VirtualMachineSize                        = "D1_Standard"
+	VirtualNetworkName                        = "test-virtual-network"
+	VirtualNetworkAddressSpace                = "10.0.0.0/16"
+)
+
+var (
+	Tags = pulumi.StringMap{
 		"key": pulumi.String("value"),
 	}
-
-	AppSecGroupName            = "test-appsec-group"
-	NetworkSecurityRuleName    = "test-network-rule"
-	NetworkSecurityGroupName   = "test-network-group"
-	PublicIPAllocationMethod   = "Static"
-	PublicIPName               = "test-public-ip"
-	PublicIPSKU                = "Standard"
-	PublicIPVersion            = "IPv4"
-	SubnetName                 = "test-subnet"
-	ResourceGroupName          = "test-resource-group"
-	VirtualNetworkName         = "test-virtual-network"
-	VirtualNetworkAddressSpace = "10.0.0.0/16"
-
+	// Config stores all the mock resources
 	Config = map[string]string{
 		// mock application security group
 		fmt.Sprintf("%s:appSecurityGroups", ConfigNamespace): `
 [{
 	"name": "` + AppSecGroupName + `"
+}]`,
+
+		// mock availability set
+		fmt.Sprintf("%s:availabilitySets", ConfigNamespace): `
+[{
+	"managed": true,
+	"name": "` + AvailabilitySetName + `",
+	"platformFaultDomainCount": 3,
+	"platformUpdateDomainCount": 5
+}]`,
+
+		// mock IP configuration
+		fmt.Sprintf("%s:ipConfiguration", ConfigNamespace): `
+[{
+	"name": "` + IPConfigurationName + `",
+	"primary": true,
+	"privateIPAddressAllocation": "` + IPConfigurationPrivateIPAddressAllocation + `",
+	"privateIPAddressVersion": "` + IPConfigurationPrivateIPAddressVersion + `"
+}]`,
+		// mock network interface
+		fmt.Sprintf("%s:networkInterfaces", ConfigNamespace): `
+[{
+	"ipConfiguration": "` + IPConfigurationName + `",
+	"name": "` + NetworkInterfaceName + `"
 }]`,
 
 		// mock network security rules
@@ -58,6 +109,24 @@ var (
 	"securityRules": ["` + NetworkSecurityRuleName + `"]
 }]`,
 
+		// mock OS profile
+		fmt.Sprintf("%s:osProfiles", ConfigNamespace): `
+[{
+	"adminPassword": "` + OSProfileAdminPassword + `",
+	"adminUsername": "` + OSProfileAdminUsername + `",
+	"customData": "` + OSProfileCustomData + `",
+	"name": "` + OSProfileName + `"
+}]`,
+
+		// mock OS profile Linux
+		fmt.Sprintf("%s:osProfilesLinux", ConfigNamespace): `
+[{
+	"DisablePasswordAuthentication": true,
+	"Name": "` + OSProfileLinuxName + `",
+	"SSHKeyData": "` + OSProfileLinuxSSHKeyData + `",
+	"SSHKeyPath": "` + OSProfileLinuxSSHKeyPath + `"
+}]`,
+
 		// mock public IP
 		fmt.Sprintf("%s:publicIP", ConfigNamespace): `
 [{
@@ -65,6 +134,25 @@ var (
 	"ipVersion": "` + PublicIPVersion + `",
 	"name": "` + PublicIPName + `",
 	"sku": "` + PublicIPSKU + `"
+}]`,
+
+		// mock storage image reference
+		fmt.Sprintf("%s:storageImageReference", ConfigNamespace): `
+[{
+	"name": "` + StorageImageReferenceName + `",
+	"offer": "` + StorageImageReferenceOffer + `",
+	"publisher": "` + StorageImageReferencePublisher + `",
+	"sku": "` + StorageImageReferenceSKU + `",
+	"version": "` + StorageImageReferenceVersion + `"
+}]`,
+
+		// mock storage os disk
+		fmt.Sprintf("%s:storageOSDisk", ConfigNamespace): `
+[{
+	"createOption": "` + StorageOSDiskCreateOption + `",
+	"diskSizeGB": 10,
+	"name": "` + StorageOSDiskName + `",
+	"osType": "` + StorageOSDiskOSType + `"
 }]`,
 
 		// mock subnet
@@ -80,6 +168,23 @@ var (
 	"location": "` + Location + `",
 	"name": "` + ResourceGroupName + `"
 }`,
+
+		// mock virtual machine
+		fmt.Sprintf("%s:virtualMachines", ConfigNamespace): `
+[{
+	"appSecGroup": "` + AppSecGroupName + `",
+	"availabilitySet": "` + AvailabilitySetName + `",
+	"count": 3,
+	"customData": "` + VirtualMachineCustomData + `",
+	"name": "` + VirtualMachineName + `",
+	"networkInterface": "` + NetworkInterfaceName + `",
+	"osProfile": "` + OSProfileName + `",
+	"osProfileLinux": "` + OSProfileLinuxName + `",
+	"storageImageReference": "` + StorageImageReferenceName + `",
+	"storageOSDisk": "` + StorageOSDiskName + `",
+	"virtualNetwork": "` + VirtualNetworkName + `",
+	"vmSize": "` + VirtualMachineSize + `"
+}]`,
 
 		// mock virtual network
 		fmt.Sprintf("%s:virtualNetworks", ConfigNamespace): `

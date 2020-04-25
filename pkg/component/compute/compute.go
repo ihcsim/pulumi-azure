@@ -178,7 +178,6 @@ func availabilitySets(
 	}
 
 	return availabilitySets, nil
-
 }
 
 func osProfiles(
