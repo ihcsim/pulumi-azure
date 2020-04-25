@@ -16,6 +16,7 @@ const (
 
 	AppSecGroupName                           = "test-appsec-group"
 	AvailabilitySetName                       = "test-availability-set"
+	BastionName                               = "test-bastion"
 	IPConfigurationName                       = "test-ip-configuration"
 	IPConfigurationPrivateIPAddressAllocation = "Dynamic"
 	IPConfigurationPrivateIPAddressVersion    = "IPv4"
@@ -70,6 +71,15 @@ var (
 	"name": "` + AvailabilitySetName + `",
 	"platformFaultDomainCount": 3,
 	"platformUpdateDomainCount": 5
+}]`,
+
+		// mock bastion host
+		fmt.Sprintf("%s:bastionHosts", ConfigNamespace): `
+[{
+	"name": "` + BastionName + `",
+	"publicIP": "` + PublicIPName + `",
+	"subnet": "` + SubnetName + `",
+	"virtualNetwork": "` + VirtualNetworkName + `"
 }]`,
 
 		// mock IP configuration
@@ -211,6 +221,24 @@ func MockApplicationSecurityGroup(ctx *pulumi.Context) (map[string]*network.Appl
 	return appSecGroups, nil
 }
 
+func MockPublicIPs(ctx *pulumi.Context) (map[string]*network.PublicIp, error) {
+	publicIPs := map[string]*network.PublicIp{}
+	publicIP, err := network.NewPublicIp(ctx, PublicIPName, &network.PublicIpArgs{
+		AllocationMethod:  pulumi.String(PublicIPAllocationMethod),
+		IpVersion:         pulumi.String(PublicIPVersion),
+		Location:          pulumi.String(Location),
+		Name:              pulumi.String(PublicIPName),
+		ResourceGroupName: pulumi.String(ResourceGroupName),
+		Sku:               pulumi.String(PublicIPSKU),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	publicIPs[PublicIPName] = publicIP
+	return publicIPs, nil
+}
+
 func MockResourceGroup(ctx *pulumi.Context) (*core.ResourceGroup, error) {
 	return core.NewResourceGroup(ctx, ResourceGroupName, &core.ResourceGroupArgs{
 		Location: pulumi.String(Location),
@@ -220,7 +248,10 @@ func MockResourceGroup(ctx *pulumi.Context) (*core.ResourceGroup, error) {
 
 func MockVirtualNetworks(ctx *pulumi.Context) (map[string]*network.VirtualNetwork, error) {
 
-	subnet := &network.VirtualNetworkSubnetArgs{}
+	subnet := &network.VirtualNetworkSubnetArgs{
+		Name: pulumi.String(SubnetName),
+		Id:   pulumi.String(SubnetName + "_id"),
+	}
 
 	virtualNetworks := map[string]*network.VirtualNetwork{}
 	virtualNetwork, err := network.NewVirtualNetwork(ctx, VirtualNetworkName,
