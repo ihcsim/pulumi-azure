@@ -3,6 +3,8 @@ package test
 import (
 	"fmt"
 
+	"github.com/pulumi/pulumi-azure/sdk/go/azure/core"
+	"github.com/pulumi/pulumi-azure/sdk/go/azure/network"
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
 )
 
@@ -15,16 +17,17 @@ var (
 		"key": pulumi.String("value"),
 	}
 
-	AppSecGroupName          = "test-appsec-group"
-	NetworkSecurityRuleName  = "test-network-rule"
-	NetworkSecurityGroupName = "test-network-group"
-	PublicIPAllocationMethod = "Static"
-	PublicIPName             = "test-public-ip"
-	PublicIPSKU              = "Standard"
-	PublicIPVersion          = "IPv4"
-	SubnetName               = "test-subnet"
-	ResourceGroupName        = "test-resource-group"
-	VirtualNetworkName       = "test-virtual-network"
+	AppSecGroupName            = "test-appsec-group"
+	NetworkSecurityRuleName    = "test-network-rule"
+	NetworkSecurityGroupName   = "test-network-group"
+	PublicIPAllocationMethod   = "Static"
+	PublicIPName               = "test-public-ip"
+	PublicIPSKU                = "Standard"
+	PublicIPVersion            = "IPv4"
+	SubnetName                 = "test-subnet"
+	ResourceGroupName          = "test-resource-group"
+	VirtualNetworkName         = "test-virtual-network"
+	VirtualNetworkAddressSpace = "10.0.0.0/16"
 
 	Config = map[string]string{
 		// mock application security group
@@ -82,8 +85,51 @@ var (
 		fmt.Sprintf("%s:virtualNetworks", ConfigNamespace): `
 [{
 	"name": "` + VirtualNetworkName + `",
-	"cidr": "10.0.0.0/16",
+	"cidr": "` + VirtualNetworkAddressSpace + `",
 	"subnets": ["` + SubnetName + `"]
 }]`,
 	}
 )
+
+func MockApplicationSecurityGroup(ctx *pulumi.Context) (map[string]*network.ApplicationSecurityGroup, error) {
+	appSecGroups := map[string]*network.ApplicationSecurityGroup{}
+	appSecGroup, err := network.NewApplicationSecurityGroup(ctx, AppSecGroupName, &network.ApplicationSecurityGroupArgs{
+		Location:          pulumi.String(Location),
+		Name:              pulumi.String(AppSecGroupName),
+		ResourceGroupName: pulumi.String(ResourceGroupName),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	appSecGroups[AppSecGroupName] = appSecGroup
+	return appSecGroups, nil
+}
+
+func MockResourceGroup(ctx *pulumi.Context) (*core.ResourceGroup, error) {
+	return core.NewResourceGroup(ctx, ResourceGroupName, &core.ResourceGroupArgs{
+		Location: pulumi.String(Location),
+		Name:     pulumi.String(ResourceGroupName),
+	})
+}
+
+func MockVirtualNetworks(ctx *pulumi.Context) (map[string]*network.VirtualNetwork, error) {
+
+	subnet := &network.VirtualNetworkSubnetArgs{}
+
+	virtualNetworks := map[string]*network.VirtualNetwork{}
+	virtualNetwork, err := network.NewVirtualNetwork(ctx, VirtualNetworkName,
+		&network.VirtualNetworkArgs{
+			AddressSpaces:     pulumi.StringArray{pulumi.String(VirtualNetworkAddressSpace)},
+			Location:          pulumi.String(Location),
+			Name:              pulumi.String(VirtualNetworkName),
+			ResourceGroupName: pulumi.String(ResourceGroupName),
+			Subnets:           network.VirtualNetworkSubnetArray{subnet},
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	virtualNetworks[VirtualNetworkName] = virtualNetwork
+	return virtualNetworks, nil
+}

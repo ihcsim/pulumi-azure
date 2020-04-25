@@ -6,7 +6,6 @@ import (
 
 	"github.com/ihcsim/pulumi-azure/v2/pkg/mock"
 	"github.com/ihcsim/pulumi-azure/v2/pkg/test"
-	"github.com/pulumi/pulumi-azure/sdk/go/azure/core"
 	"github.com/pulumi/pulumi/sdk/go/pulumi"
 	"github.com/pulumi/pulumi/sdk/go/pulumi/config"
 )
@@ -18,10 +17,7 @@ func TestReconcile(t *testing.T) {
 			tags = test.Tags
 		)
 
-		resourceGroup, err := core.NewResourceGroup(ctx, test.ResourceGroupName, &core.ResourceGroupArgs{
-			Location: pulumi.String(test.Location),
-			Name:     pulumi.String(test.ResourceGroupName),
-		})
+		resourceGroup, err := test.MockResourceGroup(ctx)
 		if err != nil {
 			return err
 		}
