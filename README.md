@@ -19,7 +19,8 @@ This project is a Pulumi program that knows how to provision the following Azure
 backed by the pool of `web` VMs
 * A network security group with rules to allow HTTP/HTTPS and SSH access to the
 VMs
-* A bastion host that allows external access to the private VMs
+* A [bastion service](https://azure.microsoft.com/en-ca/services/azure-bastion/)
+that allows external access to the private VMs
 
 ![Topology](img/topology.png)
 
