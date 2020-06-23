@@ -1,3 +1,4 @@
+blank_issues_enabled: false
 contact_links:
 - name: 🙋🏾 Question
   url: https://github.com/linkerd/linkerd2/discussions/new
